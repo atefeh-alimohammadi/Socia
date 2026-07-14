@@ -22,7 +22,7 @@ def create_access_token(data:dict) -> str:
 
 def verify_token(token:str) -> dict:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["settings.ALGORITHM"])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
     except JWTError:
         raise HTTPException(
