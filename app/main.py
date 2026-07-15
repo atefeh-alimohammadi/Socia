@@ -1,7 +1,8 @@
 from fastapi import FastAPI
-from app.api import auth
+from app.api import auth, journal
 from app.database.database import Base, engine
 from app.models.user import User
+from app.models.journal_entry import JournalEntry
 
 from app.api.deps import get_current_user
 from app.schemas.users import UserResponse
@@ -11,6 +12,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 app.include_router(auth.router)
+app.include_router(journal.router)
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
