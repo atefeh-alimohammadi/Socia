@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.database.deps import get_db
 from app.models.journal_entry import JournalEntry
 from app.models.user import User
-from app.schemas.journal_entry import JournalEntryResponse
 
 from app.schemas.journal_entry import (
 JournalEntryCreate,
@@ -51,11 +50,11 @@ def get_my_journals(
 
 @router.get("/{journal_id}", response_model=JournalEntryResponse)
 def get_journal(
-        entry_id: int,
+        journal_id: int,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
-    entry = db.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+    entry = db.query(JournalEntry).filter(JournalEntry.id == journal_id).first()
 
     if entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Journal not found")
@@ -68,12 +67,12 @@ def get_journal(
 
 @router.put("/{journal_id}", response_model=JournalEntryResponse)
 def update_journal(
-        entry_id: int,
+        journal_id: int,
         entry_update: JournalEntryUpdate,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
-    entry = db.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+    entry = db.query(JournalEntry).filter(JournalEntry.id == journal_id).first()
 
     if entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Journal not found")

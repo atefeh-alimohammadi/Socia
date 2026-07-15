@@ -8,7 +8,8 @@ from app.api.deps import get_current_user
 from app.schemas.users import UserResponse
 from fastapi import Depends
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
+
 
 app = FastAPI()
 app.include_router(auth.router)
