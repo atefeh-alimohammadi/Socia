@@ -12,7 +12,7 @@ JournalEntryResponse
 )
 
 from app.api.deps import get_current_user
-
+from app.services.journal_service import get_user_journal
 
 router = APIRouter(
     prefix="/journal",
@@ -54,13 +54,11 @@ def get_journal(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
-    entry = db.query(JournalEntry).filter(JournalEntry.id == journal_id).first()
-
-    if entry is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Journal not found")
-
-    if entry.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+    entry = get_user_journal(
+        db=db,
+        entry_id=journal_id,
+        user_id=current_user.id,
+    )
 
     return entry
 
@@ -72,14 +70,11 @@ def update_journal(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
-    entry = db.query(JournalEntry).filter(JournalEntry.id == journal_id).first()
-
-    if entry is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Journal not found")
-
-    if entry.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
+    entry = get_user_journal(
+        db=db,
+        entry_id=journal_id,
+        user_id=current_user.id,
+    )
     update_data = entry_update.model_dump(exclude_unset=True)
 
     for key, value in update_data.items():
@@ -96,15 +91,11 @@ def delete_journal(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
-
-    entry = db.query(JournalEntry).filter(JournalEntry.id == journal_id).first()
-
-    if entry is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Journal not found")
-
-    if entry.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
+    entry = get_user_journal(
+        db=db,
+        entry_id=journal_id,
+        user_id=current_user.id,
+    )
     db.delete(entry)
     db.commit()
 

@@ -13,4 +13,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    journal_entries = relationship("JournalEntry", back_populates="owner")
+    journal_entries = relationship("JournalEntry", back_populates="owner", cascade="all, delete-orphan")
+
+    conversation_sessions = relationship("ConversationSession", back_populates="owner", cascade="all, delete-orphan")
+

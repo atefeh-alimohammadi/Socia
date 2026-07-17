@@ -8,6 +8,8 @@ from alembic import context
 from app.database.database import Base
 from app.models.user import User
 from app.models.journal_entry import JournalEntry
+from app.models.conversation_session import ConversationSession
+from app.models.message import Message
 from dotenv import load_dotenv
 import os
 
