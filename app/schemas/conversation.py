@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
 
 
 class SessionCreate(BaseModel):
@@ -18,7 +19,7 @@ class SessionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class MessageCreate(BaseModel):
-    content: str
+    content: str = Field(min_length=1)
 
 class MessageResponse(BaseModel):
     id: int

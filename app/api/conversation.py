@@ -1,6 +1,4 @@
 from fastapi import APIRouter, Depends, status, HTTPException
-from fastapi.params import Depends
-from starlette import status
 from sqlalchemy.orm import Session
 from app.schemas.conversation import (
 SessionCreate,
@@ -17,6 +15,9 @@ from app.database.deps import get_db
 from app.ai.stub import get_ai_response
 
 from app.services.authorization import get_user_conversation
+# from app.ai.stub import get_ai_response
+# from app.ai.gemini import get_ai_response
+from app.ai.ollama import get_ai_response
 router = APIRouter(prefix="/conversation", tags=["Conversation"])
 
 
@@ -109,17 +110,6 @@ def get_conversation(
         current_user: User = Depends(get_current_user)
 ):
 
-    # conversation = (
-    #     db.query(ConversationSession)
-    #     .filter(ConversationSession.id == session_id)
-    #     .first()
-    # )
-    #
-    # if conversation is None:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-    #
-    # if conversation.user_id != current_user.id:
-    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to use this endpoint")
     conversation = get_user_conversation(
         db=db,
         session_id=session_id,
@@ -142,12 +132,6 @@ def get_messages(
         session_id=session_id,
         user_id=current_user.id
     )
-
-    if conversation is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-
-    if conversation.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to use this endpoint")
 
     messages = (
         db.query(Message)
@@ -172,12 +156,6 @@ def delete_conversation(
         session_id=session_id,
         user_id=current_user.id
     )
-
-    if conversation is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-
-    if conversation.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to use this endpoint")
 
     db.delete(conversation)
     db.commit()
