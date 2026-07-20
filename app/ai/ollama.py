@@ -24,16 +24,11 @@ def get_ai_response(user_message: str, conversation_history: list) -> str:
         ]
 
         for msg in conversation_history:
-            role = "assistant" if msg.role == "assistant" else "user"
+            role = msg.role
 
             messages.append({
                 "role": role,
                 "content": msg.content
-            })
-
-        messages.append({
-                "role": "user",
-                "content": user_message
             })
 
         response = chat(

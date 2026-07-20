@@ -24,3 +24,5 @@ class JournalEntry(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     owner = relationship("User", back_populates="journal_entries")
+
+    emotion_analysis = relationship("EmotionAnalysis", back_populates="journal_entry", cascade="all, delete-orphan")
