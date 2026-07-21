@@ -17,3 +17,5 @@ class User(Base):
 
     conversation_sessions = relationship("ConversationSession", back_populates="owner", cascade="all, delete-orphan")
 
+    memories = relationship("UserMemory", back_populates="user", cascade="all, delete-orphan")
+

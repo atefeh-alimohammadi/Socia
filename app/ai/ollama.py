@@ -14,12 +14,26 @@ Your goals:
 - Ask thoughtful follow-up questions when appropriate.
 """
 
-def get_ai_response(user_message: str, conversation_history: list) -> str:
+def get_ai_response(user_message: str, conversation_history: list, user_memories: list | None = None) -> str:
     try:
+
+        if user_memories:
+            memory_text = "\n".join(
+                [f"- {m.content}" for m in user_memories]
+            )
+
+            system_content = (
+                SYSTEM_PROMPT
+                + "\n\nWhat do you know about this user:\n"
+                + memory_text
+            )
+        else:
+            system_content = SYSTEM_PROMPT
+
         messages = [
             {
                 "role": "system",
-                "content": SYSTEM_PROMPT
+                "content": system_content
             }
         ]
 

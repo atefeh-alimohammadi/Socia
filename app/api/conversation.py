@@ -10,13 +10,11 @@ MessageResponse,
 from app.models.user import User
 from app.models.conversation_session import ConversationSession
 from app.models.message import Message
+from app.models.user_memory import UserMemory
 from app.api.deps import get_current_user
 from app.database.deps import get_db
-from app.ai.stub import get_ai_response
 
 from app.services.authorization import get_user_conversation
-# from app.ai.stub import get_ai_response
-# from app.ai.gemini import get_ai_response
 from app.ai.ollama import get_ai_response
 router = APIRouter(prefix="/conversation", tags=["Conversation"])
 
@@ -67,9 +65,16 @@ def send_message(
         .all()
     )
 
+    user_memories = (
+        db.query(UserMemory)
+        .filter(UserMemory.user_id == current_user.id)
+        .all()
+    )
+
     ai_response = get_ai_response(
         user_message.content,
         conversation_history=conversation_history,
+        user_memories=user_memories,
     )
 
     assistant_message = Message(
