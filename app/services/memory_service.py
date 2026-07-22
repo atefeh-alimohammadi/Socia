@@ -8,6 +8,10 @@ from app.models.journal_entry import JournalEntry
 from app.models.emotion_analysis import EmotionAnalysis
 from app.models.user_memory import UserMemory
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 MEMORY_SYNTHESIS_PROMPT = """
 You are analyzing a user's emotional history.
 
@@ -122,7 +126,7 @@ def synthesize_user_patterns(
 
 
     except Exception as e:
-        print("Memory synthesis error: ", e)
+        logger.error("Memory synthesis failed: %s ", e)
 
         db.rollback()
 

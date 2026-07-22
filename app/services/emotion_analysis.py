@@ -7,6 +7,11 @@ from app.database.database import SessionLocal
 from app.models.journal_entry import JournalEntry
 from app.models.emotion_analysis import EmotionAnalysis
 
+from app.services.memory_service import synthesize_user_patterns
+import logging
+
+logger = logging.getLogger(__name__)
+
 EMOTION_ANALYSIS_PROMPT = """
 Analyze the following journal entry and identify the emotions present.
 
@@ -83,9 +88,11 @@ def analyze_emotions(
 
         db.commit()
 
+        synthesize_user_patterns(entry.user_id)
+
     except Exception as e:
 
-        print("Emotion analysis error:", e)
+        logger.error("Emotion analysis failed: %s", e)
 
         entry.analysis_status = "failed"
 

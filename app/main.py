@@ -1,26 +1,36 @@
 from fastapi import FastAPI
-from app.api import auth, journal
 from app.database.database import Base, engine
-from app.models import conversation_session
+
 from app.models.user import User
 from app.models.journal_entry import JournalEntry
 from app.models.conversation_session import ConversationSession
 from app.models.message import Message
 from app.models.user_memory import UserMemory
 
+
 from app.api.deps import get_current_user
 from app.schemas.users import UserResponse
 from fastapi import Depends
 
-from app.api import conversation, auth, journal, memory
+from app.api import conversation, auth, journal, memory, analytics
+
+from app.core.logging_config import setup_logging
 
 
 
-app = FastAPI()
-app.include_router(auth.router)
-app.include_router(journal.router)
-app.include_router(conversation.router)
-app.include_router(memory.router)
+setup_logging()
+app = FastAPI(
+    title="Socia API",
+    description="AI-powered social coaching and emotional awareness companion",
+    version="0.1.0",
+)
+
+
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(journal.router, prefix="/api/v1")
+app.include_router(conversation.router, prefix="/api/v1")
+app.include_router(memory.router, prefix="/api/v1")
+app.include_router(analytics.router, prefix="/api/v1")
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -31,3 +41,10 @@ def read_current_user(
         current_user: User = Depends(get_current_user)
 ):
     return current_user
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy",
+            "version": "0.1.0",
+            "service": "Socia API"
+            }
