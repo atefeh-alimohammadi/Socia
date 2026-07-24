@@ -9,7 +9,7 @@ from app.utils.security import hash_password, verify_password
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from app.schemas.token import TokenResponse
-from app.utils.token import create_access_token
+from app.utils.token import create_access_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -49,3 +49,8 @@ async def login(
     token = create_access_token(data={"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
 
+@router.get("/me", response_model=UserResponse)
+async def get_me(
+        current_user: User = Depends(get_current_user)
+):
+    return current_user
