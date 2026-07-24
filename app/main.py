@@ -16,6 +16,7 @@ from app.api import conversation, auth, journal, memory, analytics
 
 from app.core.logging_config import setup_logging
 
+from fastapi.middleware.cors import CORSMiddleware
 
 
 setup_logging()
@@ -23,6 +24,14 @@ app = FastAPI(
     title="Socia API",
     description="AI-powered social coaching and emotional awareness companion",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
