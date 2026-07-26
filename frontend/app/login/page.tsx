@@ -44,14 +44,7 @@ export default function LoginPage() {
         data.access_token
       )
 
-      console.log(
-  "TOKEN AFTER SAVE:",
-  localStorage.getItem("token")
-)
-      console.log(
-  "BEFORE REDIRECT:",
-  localStorage.getItem("token")
-)
+
       router.push("/dashboard")
 
 
