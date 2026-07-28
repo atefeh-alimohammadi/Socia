@@ -41,7 +41,14 @@ async def login(
         form_data: OAuth2PasswordRequestForm = Depends(),
         db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.email == form_data.username).first()
+    user = (
+        db.query(User)
+        .filter(
+            (User.email == form_data.username) |
+            (User.username == form_data.username)
+        )
+        .first()
+    )
     if not user:
         raise HTTPException(status_code=401, detail="Invalid username or password")
     if not verify_password(form_data.password, user.hashed_password):

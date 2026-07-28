@@ -4,17 +4,22 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiFetch } from "@/lib/api"
 
-export default function LoginPage() {
+
+export default function RegisterPage() {
 
     const router = useRouter()
 
+    const [email, setEmail] = useState("")
     const [username, setUsername] = useState("")
+    const [full_name, setFullName] = useState("")
     const [password, setPassword] = useState("")
-    const [error, setError] = useState("")
+
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
 
 
-    async function handleLogin(e: React.FormEvent) {
+    async function handleRegister(e: React.FormEvent) {
+
         e.preventDefault()
 
         setLoading(true)
@@ -22,46 +27,63 @@ export default function LoginPage() {
 
         try {
 
+
+
+            const registerResponse = await apiFetch("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+        email,
+        username,
+        full_name,
+        password
+    })
+})
+
+
+
             const formData = new FormData()
 
-            formData.append("username", username)
-            formData.append("password", password)
+formData.append("username", email)
+formData.append("password", password)
+
+const loginResponse = await fetch(
+    "http://localhost:8000/api/v1/auth/login",
+    {
+        method: "POST",
+        body: formData,
+    }
+)
+
+if (!loginResponse.ok) {
+    throw new Error("Registration succeeded but login failed")
+}
+
+const loginData: {
+    access_token: string
+    token_type: string
+} = await loginResponse.json()
+
+localStorage.setItem(
+    "token",
+    loginData.access_token
+)
 
 
-            const response = await fetch(
-                "http://localhost:8000/api/v1/auth/login",
-                {
-                    method: "POST",
-                    body: formData
-                }
-            )
 
 
-            if (!response.ok) {
-                throw new Error("Invalid username or password")
-            }
+            router.push("/onboarding")
 
 
-            const data = await response.json()
+        } catch (err) {
+    if (err instanceof Error) {
+        setError(err.message)
+    } else {
+        setError("Something went wrong")
+    }
+} finally {
 
-            localStorage.setItem(
-                "token",
-                data.access_token
-            )
-
-            router.push("/dashboard")
-
-
-        } catch(err) {
-
-            if(err instanceof Error){
-                setError(err.message)
-            } else {
-                setError("Something went wrong")
-            }
-
-        } finally {
             setLoading(false)
+
         }
     }
 
@@ -70,21 +92,38 @@ export default function LoginPage() {
 
         <main className="min-h-screen bg-slate-50 flex items-center justify-center">
 
+
             <form
-                onSubmit={handleLogin}
+                onSubmit={handleRegister}
                 className="bg-white p-8 rounded-xl shadow-md w-full max-w-md"
             >
 
                 <h1 className="text-3xl font-bold text-center mb-6">
-                    Welcome back
+                    Create Account
                 </h1>
 
 
                 <input
                     className="border p-3 rounded w-full mb-3"
-                    placeholder="Email or username"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e)=>setEmail(e.target.value)}
+                />
+
+
+                <input
+                    className="border p-3 rounded w-full mb-3"
+                    placeholder="Username"
                     value={username}
                     onChange={(e)=>setUsername(e.target.value)}
+                />
+
+
+                <input
+                    className="border p-3 rounded w-full mb-3"
+                    placeholder="Full name"
+                    value={full_name}
+                    onChange={(e)=>setFullName(e.target.value)}
                 />
 
 
@@ -112,28 +151,29 @@ export default function LoginPage() {
                 >
                     {
                         loading
-                        ? "Logging in..."
-                        : "Login"
+                        ? "Creating..."
+                        : "Create Account"
                     }
                 </button>
 
 
                 <p className="text-center mt-4">
 
-                    Don't have an account?{" "}
+                    Already have an account?{" "}
 
                     <button
                         type="button"
                         className="text-indigo-600"
                         onClick={() => router.push("/")}
                     >
-                        Create one
+                        Login
                     </button>
 
                 </p>
 
 
             </form>
+
 
         </main>
 
