@@ -37,6 +37,8 @@ class UserMemory(Base):
 
     user = relationship("User", back_populates="memories")
 
+    tag = Column(String, nullable=True)
+
     __table_args__ = (
         CheckConstraint(
             "memory_type IN ('pattern', 'preference', 'insight')",

@@ -15,5 +15,6 @@ class UserResponse(BaseModel):
     full_name: str | None
     is_active: bool
     created_at: datetime
+    onboarding_completed: bool
     model_config = { "from_attributes": True}
 

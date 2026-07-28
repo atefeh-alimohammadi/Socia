@@ -12,7 +12,7 @@ from app.api.deps import get_current_user
 from app.schemas.users import UserResponse
 from fastapi import Depends
 
-from app.api import conversation, auth, journal, memory, analytics
+from app.api import conversation, auth, journal, memory, analytics, onboarding
 
 from app.core.logging_config import setup_logging
 
@@ -40,6 +40,7 @@ app.include_router(journal.router, prefix="/api/v1")
 app.include_router(conversation.router, prefix="/api/v1")
 app.include_router(memory.router, prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
+app.include_router(onboarding.router, prefix="/api/v1")
 @app.get("/")
 async def root():
     return {"message": "Hello World"}

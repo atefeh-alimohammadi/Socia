@@ -12,10 +12,12 @@ class User(Base):
     is_active = Column(Boolean, server_default="true")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    onboarding_completed = Column(Boolean, server_default="false")
 
     journal_entries = relationship("JournalEntry", back_populates="owner", cascade="all, delete-orphan")
 
     conversation_sessions = relationship("ConversationSession", back_populates="owner", cascade="all, delete-orphan")
 
     memories = relationship("UserMemory", back_populates="user", cascade="all, delete-orphan")
+
 
