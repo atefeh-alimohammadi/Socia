@@ -1,5 +1,6 @@
 from ollama import chat
 from fastapi import HTTPException
+import httpx
 
 SYSTEM_PROMPT = """
 You are Socia, an AI companion.
@@ -56,3 +57,35 @@ def get_ai_response(user_message: str, conversation_history: list, user_memories
         print("Ollama error:", e)
 
         raise HTTPException(status_code=502, detail="AI service unavailable")
+
+
+
+
+
+
+def generate_ai_response(prompt: str):
+
+    response = httpx.post(
+        "http://127.0.0.1:11434/api/chat",
+        json={
+            "model": "qwen2.5:7b",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a JSON generation assistant. Return only valid JSON."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "stream": False
+        },
+        timeout=120
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    return data["message"]["content"]

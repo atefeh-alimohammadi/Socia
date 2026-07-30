@@ -20,4 +20,9 @@ class User(Base):
 
     memories = relationship("UserMemory", back_populates="user", cascade="all, delete-orphan")
 
+    journeys = relationship(
+        "Journey",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 

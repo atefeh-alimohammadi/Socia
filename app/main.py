@@ -6,13 +6,17 @@ from app.models.journal_entry import JournalEntry
 from app.models.conversation_session import ConversationSession
 from app.models.message import Message
 from app.models.user_memory import UserMemory
+from app.models.journey import Journey
+from app.models.journey_challenge import JourneyChallenge
+from app.models.emotion_analysis import EmotionAnalysis
+
 
 
 from app.api.deps import get_current_user
 from app.schemas.users import UserResponse
 from fastapi import Depends
 
-from app.api import conversation, auth, journal, memory, analytics, onboarding
+from app.api import conversation, auth, journal, memory, analytics, onboarding, journey
 
 from app.core.logging_config import setup_logging
 
@@ -41,6 +45,7 @@ app.include_router(conversation.router, prefix="/api/v1")
 app.include_router(memory.router, prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
 app.include_router(onboarding.router, prefix="/api/v1")
+app.include_router(journey.router, prefix="/api/v1")
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
