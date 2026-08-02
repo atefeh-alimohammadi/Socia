@@ -10,7 +10,7 @@ class UserMemoryResponse(BaseModel):
     memory_type: str
     content: str
     source: str | None
-    tag: str | None
+    tag: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

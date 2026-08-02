@@ -19,7 +19,7 @@ ONBOARDING_STEPS = [
         "step":3,
         "question":
         "What communication situation is difficult for you?",
-        "memory_type":"pattern",
+        "memory_type":"insight",
         "tag":"communication_challenge"
     },
 
@@ -27,8 +27,8 @@ ONBOARDING_STEPS = [
         "step":4,
         "question":
         "After difficult interactions, how do you usually feel?",
-        "memory_type":"pattern",
-        "tag":"emotional_response_pattern"
+        "memory_type":"insight",
+        "tag":"emotional_response"
     },
 
     {

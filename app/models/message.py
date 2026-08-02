@@ -23,3 +23,13 @@ class Message(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     session = relationship('ConversationSession', back_populates='messages')
+
+    conversation_emotions = relationship(
+        "ConversationEmotion",
+        back_populates="message"
+    )
+
+    behavior_observations = relationship(
+        "BehaviorObservation",
+        back_populates="message"
+    )

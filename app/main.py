@@ -9,6 +9,9 @@ from app.models.user_memory import UserMemory
 from app.models.journey import Journey
 from app.models.journey_challenge import JourneyChallenge
 from app.models.emotion_analysis import EmotionAnalysis
+from app.models.conversation_emotion import ConversationEmotion
+from app.models.behavior_observation import BehaviorObservation
+
 
 
 

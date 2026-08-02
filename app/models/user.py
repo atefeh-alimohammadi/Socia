@@ -26,3 +26,15 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    conversation_emotions = relationship(
+        "ConversationEmotion",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    behavior_observations = relationship(
+        "BehaviorObservation",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+

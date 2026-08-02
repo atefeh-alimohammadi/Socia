@@ -5,223 +5,428 @@ import { useRouter } from "next/navigation"
 import { apiFetch } from "@/lib/api"
 
 interface User {
-  id: number
-  email: string
-  username: string
-  full_name: string | null
-  is_active: boolean
+    id: number
+    email: string
+    username: string
+    full_name: string | null
 }
 
-interface JournalEntry {
-  id: number
-  title: string
-  content: string
-  mood: string | null
-  analysis_status: string
-  created_at: string
+interface Journey {
+    id: number
+    title: string
+    description: string
+    status: string
+    day_current: number
+    day_total: number
 }
 
-export default function DashboardPage() {
+interface Conversation {
 
-  const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [entries, setEntries] = useState<JournalEntry[]>([])
-  const [title, setTitle] = useState("")
-  const [content, setContent] = useState("")
-  const [mood, setMood] = useState("")
+    id:number
+    title:string|null
+    created_at:string
 
-  useEffect(() => {
+}
 
+
+export default function HomePage() {
+
+    const router = useRouter()
+    const [user, setUser] = useState<User | null>(null)
+    const [journey, setJourney] = useState<Journey | null>(null)
+    const [conversations,setConversations] = useState<Conversation[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
 
     const token = localStorage.getItem("token")
 
-
     if (!token) {
-      router.push("/login")
-      return
+        router.push("/login")
+        return
     }
 
 
-    const fetchUser = async () => {
+    async function loadUser(){
 
-      try {
-
+    try {
 
         const data = await apiFetch("/auth/me")
 
-
-
         setUser(data)
-        const journals = await apiFetch("/journal/")
+        const journeys = await apiFetch("/journeys/")
 
-        setEntries(journals)
+        if (journeys.length > 0) {
+             setJourney(journeys[0])
+        }
+        const chats = await apiFetch(
+    "/conversation/"
+        )
+        setConversations(
+            chats.slice(0,3)
+        )
 
-      } catch (error) {
+    } catch(error){
 
 
         localStorage.removeItem("token")
         router.push("/login")
 
-      }
+    } finally {
+
+        setLoading(false)
 
     }
 
+}
 
-    fetchUser()
+
+    loadUser()
 
 
-  }, [router])
+}, [router])
 
-async function createJournal() {
+    async function startNewConversation(){
 
-  try {
+    try{
 
-    const newEntry = await apiFetch(
-      "/journal/",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          title,
-          content,
-          mood
-        })
-      }
+        const newSession = await apiFetch(
+            "/conversation/",
+            {
+                method:"POST",
+                body:JSON.stringify({
+                    title:null
+                })
+            }
+        )
+
+
+        router.push(
+            `/conversations/${newSession.id}`
+        )
+
+
+    }catch{
+
+
+    }
+
+}
+
+if (loading) {
+        return (
+            <main className="min-h-screen flex items-center justify-center">
+                <p>Loading...</p>
+            </main>
+        )
+    }
+    return (
+
+        <main className="min-h-screen bg-slate-50 p-8">
+
+            <div className="max-w-5xl mx-auto">
+
+
+                {/* Header */}
+
+                <div className="mb-8">
+
+                    <h1 className="text-4xl font-bold">
+                        Good morning, {user?.username || "there"} 👋
+                    </h1>
+
+                    <p className="text-xl text-gray-600 mt-2">
+                        How are you feeling today?
+                    </p>
+
+
+                    <button
+                        onClick={startNewConversation}
+                        className="
+                        mt-6
+                        bg-indigo-600
+                        hover:bg-indigo-700
+                        text-white
+                        px-8
+                        py-4
+                        rounded-xl
+                        text-lg
+                        font-semibold
+                        "
+                    >
+                        💬 Start chatting with Socia
+                    </button>
+
+                </div>
+
+
+
+                {/* Cards Grid */}
+
+                <div className="
+                    grid
+                    md:grid-cols-2
+                    gap-6
+                ">
+
+
+
+                    {/* Journey */}
+
+                    <div className="
+                        bg-white
+                        border
+                        rounded-2xl
+                        p-6
+                        shadow-sm
+                    ">
+
+                        <h2 className="text-2xl font-bold mb-4">
+                            Your Journey
+                        </h2>
+
+
+                        <h3 className="text-xl">
+                            {journey?.title || "No active journey"}
+                        </h3>
+
+
+                        <p className="text-gray-500 mt-1">
+                            Day {journey?.day_current || 0} / {journey?.day_total || 0}
+                        </p>
+
+
+
+
+                        <button
+                            onClick={() => router.push("/journeys")}
+                            className="
+                            mt-6
+                            bg-green-600
+                            text-white
+                            px-6
+                            py-2
+                            rounded-lg
+                            "
+                        >
+                            Continue
+                        </button>
+
+
+                    </div>
+
+
+
+
+                    {/* Recent conversations */}
+
+
+                    <div className="
+                        bg-white
+                        border
+                        rounded-2xl
+                        p-6
+                        shadow-sm
+                    ">
+
+
+                        <h2 className="text-2xl font-bold mb-5">
+                            Recent Conversations
+                        </h2>
+
+                       <div className="space-y-4">
+
+                        {
+                        conversations.length === 0 ? (
+
+                        <p className="text-gray-500">
+                        No conversations yet
+                        </p>
+
+                        ) : (
+
+                        conversations.map((conversation)=>(
+
+                        <div
+                        key={conversation.id}
+                        onClick={()=>router.push(
+                            `/conversations/${conversation.id}`
+                        )}
+                        className="
+                        flex
+                        items-center
+                        gap-3
+                        cursor-pointer
+                        hover:bg-gray-50
+                        p-2
+                        rounded-lg
+                        "
+                        >
+
+                        <div
+                        className="
+                        w-3
+                        h-3
+                        rounded-full
+                        bg-purple-600
+                        "
+                        />
+
+
+                        <p>
+                        {
+                        conversation.title
+                        ||
+                        "Untitled conversation"
+                        }
+                        </p>
+
+
+                        </div>
+
+                        ))
+
+                        )
+
+                        }
+
+                        </div>
+
+
+                        <button
+                            onClick={() => router.push("/conversations")}
+                            className="
+                            mt-6
+                            border
+                            px-5
+                            py-2
+                            rounded-lg
+                            "
+                        >
+                            View all
+                        </button>
+
+
+                    </div>
+
+
+
+
+
+                    {/* Progress */}
+
+
+                    <div className="
+                        bg-white
+                        border
+                        rounded-2xl
+                        p-6
+                        shadow-sm
+                    ">
+
+
+                       <h2 className="text-2xl font-bold mb-5">
+                            Your Progress
+                        </h2>
+
+                        <p className="text-gray-500">
+                            Your progress insights will appear here.
+                        </p>
+
+                        <button
+                        onClick={() => router.push("/progress")}
+                        className="
+                        mt-5
+                        bg-indigo-600
+                        text-white
+                        px-6
+                        py-2
+                        rounded-lg
+                        "
+                        >
+                        View Progress
+                        </button>
+
+                    </div>
+
+
+
+
+
+                    {/* Quick actions */}
+
+
+                    <div className="
+                        bg-white
+                        border
+                        rounded-2xl
+                        p-6
+                        shadow-sm
+                    ">
+
+
+                        <h2 className="text-2xl font-bold mb-5">
+                            Quick Actions
+                        </h2>
+
+
+
+                        <div className="flex flex-col gap-3">
+
+
+                            <button
+                                onClick={() => router.push("/chat")}
+                                className="
+                                bg-indigo-100
+                                py-3
+                                rounded-xl
+                                "
+                            >
+                                💬 Continue conversation
+                            </button>
+
+
+
+                            <button
+                                onClick={() => router.push("/progress")}
+                                className="
+                                bg-gray-100
+                                py-3
+                                rounded-xl
+                                "
+                            >
+                                📊 View progress
+                            </button>
+
+
+
+                            <button
+                                onClick={() => router.push("/profile")}
+                                className="
+                                bg-gray-100
+                                py-3
+                                rounded-xl
+                                "
+                            >
+                                👤 Profile
+                            </button>
+
+
+
+                        </div>
+
+
+                    </div>
+
+
+
+                </div>
+
+
+            </div>
+
+
+        </main>
+
     )
-
-    setEntries([
-      ...entries,
-      newEntry
-    ])
-
-    setTitle("")
-    setContent("")
-    setMood("")
-
-  } catch(error) {
-    alert("Failed to create journal entry")
-  }
-
-}
-  return (
-    <main className="max-w-2xl mx-auto p-6">
-
-      <h1 className="text-3xl font-bold">
-        Dashboard
-      </h1>
-
-
-      {user ? (
-        <div className="mt-6">
-
-          <p>
-            Welcome back, {user.full_name || user.username} 👋
-          </p>
-
-          <h2 className="text-2xl font-bold mt-8">
-  Your Journals
-</h2>
-
-
-<div className="flex flex-col gap-4 mt-4">
-
-{
-entries.map((entry)=>(
-  <div
-    key={entry.id}
-    className="border rounded p-4"
-  >
-
-    <h3 className="font-bold">
-      {entry.title}
-    </h3>
-
-    <p>
-      Mood: {entry.mood}
-    </p>
-
-    <p>
-      {entry.content}
-    </p>
-
-    <p>
-      Analysis: {entry.analysis_status}
-    </p>
-    <p>
-  Date: {new Date(entry.created_at).toLocaleDateString()}
-    </p>
-  </div>
-))
-}
-
-</div>
-          <h2 className="text-2xl font-bold mt-8">
-  Create Journal
-</h2>
-
-
-<input
- className="border rounded p-2 w-full mt-2"
- placeholder="Title"
- value={title}
- onChange={(e)=>setTitle(e.target.value)}
-/>
-
-
-<textarea
- className="border rounded p-2 w-full mt-2"
- placeholder="Content"
- value={content}
- onChange={(e)=>setContent(e.target.value)}
-/>
-
-
-<input
- className="border rounded p-2 w-full mt-2"
- placeholder="Mood"
- value={mood}
- onChange={(e)=>setMood(e.target.value)}
-/>
-
-
-<button
- className="bg-blue-600 text-white px-4 py-2 rounded mt-4"
- onClick={createJournal}
->
-Create
-</button>
-
-          <div className="flex gap-2 mt-6">
-
-  <button
-    className="bg-green-600 text-white px-4 py-2 rounded"
-    onClick={() => router.push("/chat")}
-  >
-    Open Chat
-  </button>
-
-  <button
-    className="bg-red-600 text-white px-4 py-2 rounded"
-    onClick={() => {
-      localStorage.removeItem("token")
-      router.push("/login")
-    }}
-  >
-    Logout
-  </button>
-
-</div>
-
-        </div>
-
-      ) : (
-
-        <p className="mt-6">
-          Loading...
-        </p>
-
-      )}
-
-
-    </main>
-  )
 }

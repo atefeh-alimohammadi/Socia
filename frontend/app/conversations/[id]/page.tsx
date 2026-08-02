@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { apiFetch } from "@/lib/api"
 
 
@@ -22,6 +22,9 @@ interface Message {
 export default function ChatPage() {
 
     const router = useRouter()
+    const params = useParams()
+
+    const sessionId = Number(params.id)
 
     const [session, setSession] = useState<Session | null>(null)
     const [messages, setMessages] = useState<Message[]>([])
@@ -40,29 +43,12 @@ export default function ChatPage() {
             const initializeChat = async () => {
                 try {
 
-                    let sessions: Session[] = await apiFetch("/conversation/")
-
-                    let currentSession: Session
-
-                    if (sessions.length === 0) {
-
-                        currentSession = await apiFetch(
-                            "/conversation/",
-                            {
-                                method: "POST",
-                                body: JSON.stringify({
-                                    title: null
-                                })
-                            }
+                    const currentSession: Session = await apiFetch(
+                    `/conversation/${sessionId}`
                         )
 
-                    } else {
-
-                        currentSession = sessions[0]
-
-                    }
-
                     setSession(currentSession)
+
 
                     // Load messages
                     const chatMessages: Message[] = await apiFetch(
@@ -83,7 +69,7 @@ export default function ChatPage() {
             initializeChat()
 
         }
-        , [router])
+        , [router, sessionId])
 
     useEffect(() => {
   bottomRef.current?.scrollIntoView({
@@ -138,7 +124,7 @@ export default function ChatPage() {
 
                 <button
                     className="bg-gray-700 text-white px-4 py-2 rounded"
-                    onClick={() => router.push("/convesations")}
+                    onClick={() => router.push("/conversations")}
                 >
                     Back
                 </button>

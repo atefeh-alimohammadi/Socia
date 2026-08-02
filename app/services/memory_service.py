@@ -1,4 +1,5 @@
 import json
+import logging
 
 from ollama import chat
 
@@ -8,59 +9,88 @@ from app.models.journal_entry import JournalEntry
 from app.models.emotion_analysis import EmotionAnalysis
 from app.models.user_memory import UserMemory
 
-import logging
 
 logger = logging.getLogger(__name__)
 
-MEMORY_SYNTHESIS_PROMPT = """
-You are analyzing a user's emotional history.
 
-Your task is to identify long-term patterns.
+MEMORY_SYNTHESIS_PROMPT = """
+You are analyzing a user's emotional history and journal entries.
+
+Your task is to identify meaningful long-term memories about this user.
 
 Return ONLY valid JSON.
-
 Do not add markdown.
 Do not add explanations.
 
 The JSON format must be exactly:
 
 {
-  "patterns": [
+  "memories": [
     {
       "memory_type": "pattern",
-      "content": "User frequently experiences anxiety in work-related situations.",
+      "tag": "overthinking",
+      "content": "User often overthinks after social interactions.",
       "source": "journal"
     }
   ]
 }
 
+
 Rules:
-- Return between 3 and 5 patterns.
+
+- Return between 3 and 5 memories.
 - memory_type must be one of:
   - pattern
   - preference
   - insight
-- Keep each content short and meaningful.
-- Do not repeat similar patterns.
+
+- tag should be a short category label.
+  Examples:
+  - anxiety
+  - confidence
+  - overthinking
+  - social_fear
+  - motivation
+
+- Keep content short, specific, and meaningful.
+- Do not repeat similar memories.
+
+Pattern examples:
+- User often worries about being judged by others.
+- User avoids speaking in groups because of fear.
+
+Preference examples:
+- User prefers small achievable challenges.
+
+Insight examples:
+- User shows willingness to improve despite difficulties.
+
+Only return JSON.
 """
+
 
 def synthesize_user_patterns(
         user_id: int,
 ) -> None:
+
     db = SessionLocal()
 
     try:
 
-        journals = (db.query(JournalEntry)
-        .filter(
-            JournalEntry.user_id == user_id,
-            JournalEntry.analysis_status == "completed"
+        journals = (
+            db.query(JournalEntry)
+            .filter(
+                JournalEntry.user_id == user_id,
+                JournalEntry.analysis_status == "completed"
+            )
+            .all()
         )
-        .all()
-        )
+
 
         if not journals:
             return
+
+
 
         emotion_rows = (
             db.query(EmotionAnalysis)
@@ -71,17 +101,38 @@ def synthesize_user_patterns(
             .all()
         )
 
+
         if not emotion_rows:
             return
 
-        emotion_history = ""
+
+
+        user_history = ""
+
+
+        # Include journal text
+        for journal in journals:
+
+            user_history += (
+                "Journal Entry:\n"
+                f"{journal.content}\n\n"
+            )
+
+
+        # Include emotion analysis
+        user_history += "\nEmotion Analysis:\n"
+
 
         for emotion in emotion_rows:
-            emotion_history += (
+
+            user_history += (
                 f"Emotion: {emotion.emotion}\n"
                 f"Confidence: {emotion.confidence_score}\n"
                 f"Notes: {emotion.notes}\n\n"
             )
+
+
+
         response = chat(
             model="qwen2.5:7b",
             messages=[
@@ -91,18 +142,28 @@ def synthesize_user_patterns(
                 },
                 {
                     "role": "user",
-                    "content": emotion_history
+                    "content": user_history
                 }
             ]
         )
 
+
         ai_output = response.message.content
+
 
         data = json.loads(ai_output)
 
-        patterns = data.get("patterns", [])
 
-        for item in patterns:
+        memories = data.get(
+            "memories",
+            []
+        )
+
+
+
+        for item in memories:
+
+
             existing = (
                 db.query(UserMemory)
                 .filter(
@@ -112,24 +173,49 @@ def synthesize_user_patterns(
                 .first()
             )
 
+
             if not existing:
+
+
                 memory = UserMemory(
+
                     user_id=user_id,
+
                     memory_type=item["memory_type"],
+
                     content=item["content"],
-                    source=item.get("source")
+
+                    source=item.get(
+                        "source",
+                        "journal"
+                    ),
+
+                    tag=item.get(
+                        "tag"
+                    )
+
                 )
 
+
                 db.add(memory)
+
+
 
         db.commit()
 
 
+
     except Exception as e:
-        logger.error("Memory synthesis failed: %s ", e)
+
+        logger.error(
+            "Memory synthesis failed: %s",
+            e
+        )
 
         db.rollback()
 
-    finally:
-        db.close()
 
+
+    finally:
+
+        db.close()

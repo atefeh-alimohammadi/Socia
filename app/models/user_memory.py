@@ -31,6 +31,14 @@ class UserMemory(Base):
 
     source = Column(String, nullable=True)
 
+    source_type = Column(String, nullable=True)
+
+    evidence_count = Column(
+        Integer,
+        nullable=False,
+        server_default="1"
+    )
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -43,5 +51,15 @@ class UserMemory(Base):
         CheckConstraint(
             "memory_type IN ('pattern', 'preference', 'insight')",
             name="check_memory_type"
+        ),
+        CheckConstraint(
+            """
+            source_type IN (
+                'conversation',
+                'onboarding'
+            )
+            OR source_type IS NULL
+            """,
+            name="check_memory_source_type"
         ),
     )

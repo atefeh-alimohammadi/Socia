@@ -49,6 +49,9 @@ export default function LoginPage() {
                 data.access_token
             )
 
+            console.log("TOKEN:", data.access_token)
+            console.log("LOCAL TOKEN:", localStorage.getItem("token"))
+
             router.push("/dashboard")
 
 
