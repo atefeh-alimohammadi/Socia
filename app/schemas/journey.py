@@ -52,3 +52,7 @@ class JourneyDetailResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+class JourneyFromPatternRequest(BaseModel):
+    memory_id: int

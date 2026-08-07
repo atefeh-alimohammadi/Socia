@@ -8,12 +8,14 @@ from app.database.deps import get_db
 from app.models.user import User
 from app.models.journey import Journey
 from app.models.journey_challenge import JourneyChallenge
+from app.models.user_memory import UserMemory
 
 from app.schemas.journey import (
 JourneyCreate,
 JourneyResponse,
 JourneyDetailResponse,
-ChallengeResponse
+ChallengeResponse,
+JourneyFromPatternRequest,
 )
 
 from app.utils.token import get_current_user
@@ -255,3 +257,69 @@ def delete_journey(
     db.commit()
 
     return Response(status_code=204)
+
+@router.post("/from-pattern")
+def create_journey_from_pattern(
+        data: JourneyFromPatternRequest,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+):
+    memory = (
+        db.query(UserMemory)
+        .filter(
+            UserMemory.id == data.memory_id,
+            UserMemory.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not memory:
+        raise HTTPException(status_code=404, detail="Memory not found")
+
+    context = assemble_user_context(
+        current_user.id,
+        db,
+    )
+
+    formatted_context = format_context_for_prompt(
+        context,
+    )
+
+    generated = generate_journey_challenges(
+        title=f"Working on {memory.tag.replace('_', ' ')}",
+        description=memory.content,
+        user_context=formatted_context,
+    )
+
+    journey = Journey(
+        user_id=current_user.id,
+        title=f"Working on {memory.tag.replace('_', ' ')}",
+        description=memory.content,
+        source="ai_suggested",
+        status="active",
+        day_current=1,
+        day_total=generated["day_total"],
+    )
+
+    db.add(journey)
+    db.commit()
+    db.refresh(journey)
+
+    for challenge in generated["challenges"]:
+        db_challenge = JourneyChallenge(
+            journey_id=journey.id,
+            day_number=challenge["day_number"],
+            title=challenge["title"],
+            description=challenge["description"],
+            status="pending",
+        )
+        db.add(db_challenge)
+
+    db.commit()
+    db.refresh(journey)
+
+    return {
+        "journey": journey,
+        "challenges": journey.challenges,
+        "today_challenge": journey.challenges[0],
+    }

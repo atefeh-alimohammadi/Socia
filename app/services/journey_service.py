@@ -55,6 +55,8 @@ Rules:
 - Write directly to the user
 - Make challenges progressively harder
 - Return only JSON
+- Do not mention specific apps, websites, brands, or companies unless the user explicitly mentioned them. Keep challenges universally applicable.
+- Avoid making assumptions about the user's daily environment. If location or situation is unknown, use generic social situations.
 """
 
 
