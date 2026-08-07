@@ -1,75 +1,38 @@
 import json
 import logging
+from sqlalchemy import func
 
 from ollama import chat
 
 from app.database.database import SessionLocal
 
-from app.models.journal_entry import JournalEntry
-from app.models.emotion_analysis import EmotionAnalysis
+from app.models.behavior_observation import BehaviorObservation
 from app.models.user_memory import UserMemory
 
 
 logger = logging.getLogger(__name__)
 
+PATTERN_GENERATION_PROMPT = """
+You are generating a behavioral pattern summary for a user.
 
-MEMORY_SYNTHESIS_PROMPT = """
-You are analyzing a user's emotional history and journal entries.
+Behavioral tag:
+{tag}
 
-Your task is to identify meaningful long-term memories about this user.
+Evidence from conversations:
 
-Return ONLY valid JSON.
-Do not add markdown.
-Do not add explanations.
+{evidence}
 
-The JSON format must be exactly:
+Write a single sentence describing this recurring pattern.
 
-{
-  "memories": [
-    {
-      "memory_type": "pattern",
-      "tag": "overthinking",
-      "content": "User often overthinks after social interactions.",
-      "source": "journal"
-    }
-  ]
-}
+Write in third person.
 
+Be specific, supportive, and avoid clinical or diagnostic language.
+Describe behaviors, not personality flaws.
 
-Rules:
-
-- Return between 3 and 5 memories.
-- memory_type must be one of:
-  - pattern
-  - preference
-  - insight
-
-- tag should be a short category label.
-  Examples:
-  - anxiety
-  - confidence
-  - overthinking
-  - social_fear
-  - motivation
-
-- Keep content short, specific, and meaningful.
-- Do not repeat similar memories.
-
-Pattern examples:
-- User often worries about being judged by others.
-- User avoids speaking in groups because of fear.
-
-Preference examples:
-- User prefers small achievable challenges.
-
-Insight examples:
-- User shows willingness to improve despite difficulties.
-
-Only return JSON.
+Return only the sentence.
 """
 
-
-def synthesize_user_patterns(
+def synthesize_patterns_from_observations(
         user_id: int,
 ) -> None:
 
@@ -77,143 +40,129 @@ def synthesize_user_patterns(
 
     try:
 
-        journals = (
-            db.query(JournalEntry)
+        tag_counts = (
+            db.query(
+                BehaviorObservation.tag,
+                func.count(
+                    BehaviorObservation.id
+                ).label("count"),
+                func.avg(
+                    BehaviorObservation.confidence
+                ).label("avg_confidence")
+            )
             .filter(
-                JournalEntry.user_id == user_id,
-                JournalEntry.analysis_status == "completed"
+                BehaviorObservation.user_id == user_id
+            )
+            .group_by(
+                BehaviorObservation.tag
             )
             .all()
         )
 
 
-        if not journals:
-            return
+        for tag, count, avg_confidence in tag_counts:
 
-
-
-        emotion_rows = (
-            db.query(EmotionAnalysis)
-            .join(JournalEntry)
-            .filter(
-                JournalEntry.user_id == user_id
-            )
-            .all()
-        )
-
-
-        if not emotion_rows:
-            return
-
-
-
-        user_history = ""
-
-
-        # Include journal text
-        for journal in journals:
-
-            user_history += (
-                "Journal Entry:\n"
-                f"{journal.content}\n\n"
-            )
-
-
-        # Include emotion analysis
-        user_history += "\nEmotion Analysis:\n"
-
-
-        for emotion in emotion_rows:
-
-            user_history += (
-                f"Emotion: {emotion.emotion}\n"
-                f"Confidence: {emotion.confidence_score}\n"
-                f"Notes: {emotion.notes}\n\n"
-            )
-
-
-
-        response = chat(
-            model="qwen2.5:7b",
-            messages=[
-                {
-                    "role": "system",
-                    "content": MEMORY_SYNTHESIS_PROMPT
-                },
-                {
-                    "role": "user",
-                    "content": user_history
-                }
-            ]
-        )
-
-
-        ai_output = response.message.content
-
-
-        data = json.loads(ai_output)
-
-
-        memories = data.get(
-            "memories",
-            []
-        )
-
-
-
-        for item in memories:
+            if count < 3:
+                continue
 
 
             existing = (
                 db.query(UserMemory)
                 .filter(
                     UserMemory.user_id == user_id,
-                    UserMemory.content == item["content"]
+                    UserMemory.tag == tag,
+                    UserMemory.source_type == "conversation"
                 )
                 .first()
             )
 
 
-            if not existing:
+            if existing:
 
+                existing.evidence_count = count
 
-                memory = UserMemory(
-
-                    user_id=user_id,
-
-                    memory_type=item["memory_type"],
-
-                    content=item["content"],
-
-                    source=item.get(
-                        "source",
-                        "journal"
-                    ),
-
-                    tag=item.get(
-                        "tag"
-                    )
-
+                existing.confidence = round(
+                    avg_confidence,
+                    2
                 )
 
+                db.commit()
 
-                db.add(memory)
+                continue
 
+
+
+            evidence_rows = (
+                db.query(BehaviorObservation)
+                .filter(
+                    BehaviorObservation.user_id == user_id,
+                    BehaviorObservation.tag == tag
+                )
+                .limit(5)
+                .all()
+            )
+
+
+            evidence_text = "\n".join(
+                [
+                    row.evidence
+                    for row in evidence_rows
+                ]
+            )
+
+
+            prompt = PATTERN_GENERATION_PROMPT.format(
+                tag=tag,
+                evidence=evidence_text
+            )
+
+
+            response = chat(
+                model="qwen2.5:7b",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            )
+
+
+            generated_description = (
+                response.message.content.strip()
+            )
+
+
+            memory = UserMemory(
+                user_id=user_id,
+                memory_type="pattern",
+                tag=tag,
+                content=generated_description,
+                source="conversation",
+                source_type="conversation",
+                evidence_count=count,
+                confidence=round(
+                    avg_confidence,
+                    2
+                )
+            )
+
+
+            db.add(memory)
 
 
         db.commit()
 
 
-
     except Exception as e:
 
         logger.error(
-            "Memory synthesis failed: %s",
-            e
+            "Pattern synthesis failed: %s",
+            e,
+            exc_info=True
         )
 
         db.rollback()
-
 
 
     finally:

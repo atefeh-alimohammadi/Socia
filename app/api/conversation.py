@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.schemas.conversation import (
 SessionCreate,
@@ -15,7 +15,10 @@ from app.api.deps import get_current_user
 from app.database.deps import get_db
 
 from app.services.authorization import get_user_conversation
+from app.services.conversation_analyzer import analyze_conversation_message
 from app.ai.ollama import get_ai_response
+from fastapi import BackgroundTasks
+
 router = APIRouter(prefix="/conversation", tags=["Conversation"])
 
 
@@ -40,6 +43,7 @@ def create_session(
 def send_message(
         session_id: int,
         message: MessageCreate,
+        background_tasks: BackgroundTasks,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user),
 ):
@@ -86,6 +90,14 @@ def send_message(
     db.add(assistant_message)
     db.commit()
     db.refresh(assistant_message)
+
+    background_tasks.add_task(
+        analyze_conversation_message,
+        message_id=user_message.id,
+        user_id=current_user.id,
+        session_id=session_id,
+        content=user_message.content,
+    )
 
     return [
         user_message,

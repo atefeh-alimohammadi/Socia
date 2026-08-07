@@ -7,7 +7,7 @@ from app.database.database import SessionLocal
 from app.models.journal_entry import JournalEntry
 from app.models.emotion_analysis import EmotionAnalysis
 
-from app.services.memory_service import synthesize_user_patterns
+from app.services.memory_service import synthesize_patterns_from_observations
 import logging
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ def analyze_emotions(
 
         db.commit()
 
-        synthesize_user_patterns(entry.user_id)
+        synthesize_patterns_from_observations(entry.user_id)
 
     except Exception as e:
 

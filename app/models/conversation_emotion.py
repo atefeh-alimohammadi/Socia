@@ -62,15 +62,7 @@ class ConversationEmotion(Base):
         back_populates="conversation_emotions"
     )
 
-    user = relationship(
-        "User",
-        back_populates="conversation_emotions"
-    )
 
-    message = relationship(
-        "Message",
-        back_populates="conversation_emotions"
-    )
 
 
     __table_args__ = (

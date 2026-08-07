@@ -5,7 +5,8 @@ String,
 Text,
 DateTime,
 ForeignKey,
-CheckConstraint
+CheckConstraint,
+Float
 )
 
 from sqlalchemy.orm import relationship
@@ -37,6 +38,11 @@ class UserMemory(Base):
         Integer,
         nullable=False,
         server_default="1"
+    )
+
+    confidence = Column(
+        Float,
+        nullable=True
     )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
