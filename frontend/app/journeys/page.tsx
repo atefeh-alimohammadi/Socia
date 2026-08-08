@@ -22,6 +22,7 @@ export default function JourneysPage() {
 
     const [journeys, setJourneys] = useState<Journey[]>([])
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState("")
 
 
     useEffect(() => {
@@ -38,13 +39,14 @@ export default function JourneysPage() {
 
             try {
 
-                const data = await apiFetch("/journeys/")
+                const data: Journey[] = await apiFetch("/journeys/")
 
                 setJourneys(data)
 
-            } catch(error) {
+            } catch (err) {
 
-                console.error(error)
+                console.error(err)
+                setError("Failed to load journeys.")
 
             } finally {
 
@@ -57,7 +59,6 @@ export default function JourneysPage() {
 
         loadJourneys()
 
-
     }, [router])
 
 
@@ -66,8 +67,22 @@ export default function JourneysPage() {
 
         return (
             <main className="min-h-screen flex items-center justify-center">
-                <p className="text-gray-500">
+                <p className="text-slate-500">
                     Loading journeys...
+                </p>
+            </main>
+        )
+
+    }
+
+
+
+    if (error) {
+
+        return (
+            <main className="min-h-screen flex items-center justify-center">
+                <p className="text-red-500">
+                    {error}
                 </p>
             </main>
         )
@@ -80,7 +95,6 @@ export default function JourneysPage() {
 
         <main className="min-h-screen bg-slate-50 p-8">
 
-
             <div className="max-w-5xl mx-auto">
 
 
@@ -91,86 +105,81 @@ export default function JourneysPage() {
 
                     <div>
 
-                        <h1 className="text-4xl font-bold">
+                        <h1 className="text-4xl font-bold text-slate-800">
                             My Journeys
                         </h1>
 
 
-                        <p className="text-gray-600 mt-2">
-                            Track your personal growth paths
+                        <p className="text-slate-500 mt-2">
+                            Your journeys are created from patterns Socia has detected in your conversations.
                         </p>
 
                     </div>
 
 
 
-                    <div className="flex gap-3">
-
-
-                        <button
-                            onClick={() => router.push("/dashboard")}
-                            className="
+                    <button
+                        onClick={() => router.push("/dashboard")}
+                        className="
                             px-5
                             py-2
                             rounded-lg
                             border
                             bg-white
-                            "
-                        >
-                            ← Dashboard
-                        </button>
-
-
-
-                        <button
-                            onClick={() => router.push("/journeys/new")}
-                            className="
-                            px-5
-                            py-2
-                            rounded-lg
-                            bg-indigo-600
-                            text-white
-                            "
-                        >
-                            + Start New Journey
-                        </button>
-
-
-                    </div>
+                            hover:bg-slate-50
+                        "
+                    >
+                        ← Dashboard
+                    </button>
 
 
                 </div>
 
 
 
+
                 {
                     journeys.length === 0 ? (
 
-                        <div className="
-                            bg-white
-                            rounded-2xl
-                            border
-                            p-8
-                            text-center
-                        ">
+                        <div
+                            className="
+                                bg-white
+                                border
+                                rounded-2xl
+                                p-10
+                                text-center
+                            "
+                        >
 
-                            <p className="text-gray-600">
-                                You haven't started any journeys yet.
+                            <p className="text-2xl mb-4">
+                                🌱
+                            </p>
+
+
+                            <h2 className="font-semibold text-xl text-slate-800">
+                                No journeys yet
+                            </h2>
+
+
+                            <p className="text-slate-500 mt-2">
+                                Keep chatting with Socia. When patterns are detected,
+                                you can start a journey from your Progress page.
                             </p>
 
 
                             <button
-                                onClick={() => router.push("/journeys/new")}
+                                onClick={() => router.push("/progress")}
                                 className="
-                                mt-5
-                                bg-indigo-600
-                                text-white
-                                px-6
-                                py-3
-                                rounded-xl
+                                    mt-6
+                                    bg-indigo-600
+                                    text-white
+                                    px-6
+                                    py-3
+                                    rounded-xl
+                                    hover:bg-indigo-700
                                 "
                             >
-                                Start your first journey
+                                Go to Progress →
                             </button>
 
 
@@ -187,10 +196,15 @@ export default function JourneysPage() {
                                 journeys.map((journey) => {
 
 
-                                    const progress = Math.round(
-                                        ((journey.day_current - 1) /
-                                        journey.day_total) * 100
-                                    )
+                                    const progress =
+                                        journey.day_total > 0
+                                            ? Math.round(
+                                                ((journey.day_current - 1) /
+                                                    journey.day_total) *
+                                                100
+                                            )
+                                            : 0
+
 
 
                                     return (
@@ -198,21 +212,22 @@ export default function JourneysPage() {
                                         <div
                                             key={journey.id}
                                             className="
-                                            bg-white
-                                            border
-                                            rounded-2xl
-                                            p-6
-                                            shadow-sm
+                                                bg-white
+                                                border
+                                                rounded-2xl
+                                                p-6
+                                                shadow-sm
                                             "
                                         >
 
 
-                                            <h2 className="text-2xl font-bold">
+                                            <h2 className="text-2xl font-bold text-slate-800">
                                                 {journey.title}
                                             </h2>
 
 
-                                            <p className="text-gray-600 mt-2">
+
+                                            <p className="text-slate-600 mt-3 line-clamp-3">
                                                 {journey.description}
                                             </p>
 
@@ -220,39 +235,46 @@ export default function JourneysPage() {
 
                                             <div className="mt-5">
 
-                                                <p className="font-semibold">
+
+                                                <p className="font-semibold text-slate-700">
                                                     Day {journey.day_current} / {journey.day_total}
                                                 </p>
 
 
-                                                <div className="
-                                                    w-full
-                                                    bg-slate-100
-                                                    rounded-full
-                                                    h-2
-                                                    mt-3
-                                                ">
+
+                                                <div
+                                                    className="
+                                                        w-full
+                                                        bg-slate-100
+                                                        rounded-full
+                                                        h-2
+                                                        mt-3
+                                                    "
+                                                >
 
                                                     <div
                                                         className="
-                                                        bg-indigo-500
-                                                        h-2
-                                                        rounded-full
+                                                            bg-indigo-500
+                                                            h-2
+                                                            rounded-full
+                                                            transition-all
                                                         "
                                                         style={{
-                                                            width:`${progress}%`
+                                                            width: `${progress}%`
                                                         }}
                                                     />
 
                                                 </div>
 
 
-                                                <p className="text-sm text-gray-500 mt-2">
+
+                                                <p className="text-sm text-slate-500 mt-2">
                                                     {progress}% completed
                                                 </p>
 
 
                                             </div>
+
 
 
 
@@ -263,21 +285,24 @@ export default function JourneysPage() {
                                                     )
                                                 }
                                                 className="
-                                                mt-6
-                                                bg-indigo-600
-                                                text-white
-                                                px-5
-                                                py-2
-                                                rounded-lg
+                                                    mt-6
+                                                    bg-indigo-600
+                                                    text-white
+                                                    px-5
+                                                    py-2
+                                                    rounded-lg
+                                                    hover:bg-indigo-700
                                                 "
                                             >
-                                                View Journey →
+                                                Continue →
                                             </button>
+
 
 
                                         </div>
 
                                     )
+
 
                                 })
                             }
@@ -285,13 +310,12 @@ export default function JourneysPage() {
 
                         </div>
 
+
                     )
                 }
 
 
-
             </div>
-
 
         </main>
 

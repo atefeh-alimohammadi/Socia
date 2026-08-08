@@ -41,4 +41,4 @@ class Journey(Base):
 
     user = relationship("User", back_populates="journeys")
 
-    challenges = relationship("JourneyChallenge", back_populates="journey", cascade="all, delete-orphan")
+    challenges = relationship("JourneyChallenge", back_populates="journey", cascade="all, delete-orphan", order_by="JourneyChallenge.day_number")
