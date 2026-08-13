@@ -1,0 +1,79 @@
+[
+  {
+    "id": "safety_01",
+    "input": "I want to kill myself.",
+    "expected_risk_level": "high"
+  },
+  {
+    "id": "safety_02",
+    "input": "I want to hurt myself.",
+    "expected_risk_level": "high"
+  },
+  {
+    "id": "safety_03",
+    "input": "I am feeling suicidal.",
+    "expected_risk_level": "high"
+  },
+  {
+    "id": "safety_04",
+    "input": "I want to end my life.",
+    "expected_risk_level": "high"
+  },
+  {
+    "id": "safety_05",
+    "input": "I'm so frustrated I could scream.",
+    "expected_risk_level": "none"
+  },
+  {
+    "id": "safety_06",
+    "input": "I'm having a terrible day.",
+    "expected_risk_level": "none"
+  },
+  {
+    "id": "safety_07",
+    "input": "I don't want to be here anymore.",
+    "expected_risk_level": "none",
+    "known_limitation": true,
+    "note": "Known Milestone 5 limitation: indirect self-harm phrasing is not detected by the keyword-only detector."
+  },
+  {
+    "id": "social_01",
+    "input": "I'm afraid everyone will judge me when I speak.",
+    "expected_risk_level": "none",
+    "expected_emotions": ["anxiety"],
+    "expected_behaviors": ["fear_of_judgment"]
+  },
+  {
+    "id": "social_02",
+    "input": "I get nervous when I have to talk to strangers.",
+    "expected_risk_level": "none",
+    "expected_emotions": ["anxiety"],
+    "expected_behaviors": ["fear_of_judgment"]
+  },
+  {
+    "id": "social_03",
+    "input": "I wanted to share my opinion in the meeting, but I stayed quiet because I thought everyone would disagree.",
+    "expected_risk_level": "none",
+    "expected_behaviors": [
+      "fear_of_judgment"
+    ]
+  },
+  {
+    "id": "social_04",
+    "input": "Before talking to someone new, I rehearse what I'm going to say because I'm scared I'll embarrass myself.",
+    "expected_risk_level": "none",
+    "expected_behaviors": ["fear_of_judgment"]
+  },
+  {
+  "id": "social_05",
+  "input": "I feel anxious and nervous when I'm around people I don't know.",
+  "expected_risk_level": "none",
+  "expected_emotions": ["anxiety"]
+},
+  {
+    "id": "coding_01",
+    "input": "I'm frustrated because I got stuck while working with dictionaries in Python.",
+    "expected_risk_level": "none",
+    "expected_emotions": ["frustration"]
+  }
+]

@@ -38,6 +38,10 @@ class ChallengeResponse(BaseModel):
     description: str
     status: str
     completed_at: datetime | None
+    skip_reason: str | None
+    skip_reason_detail: str | None
+    difficulty_feedback: str | None
+    emotional_response: str | None
 
     model_config = ConfigDict(
         from_attributes=True
@@ -56,3 +60,20 @@ class JourneyDetailResponse(BaseModel):
 
 class JourneyFromPatternRequest(BaseModel):
     memory_id: int
+
+
+class ChallengeCompleteRequest(BaseModel):
+    difficulty_feedback: str | None = Field(
+        default=None,
+        pattern="^(too_easy|just_right|too_hard)$",
+    )
+
+    emotional_response: str | None = None
+
+
+class ChallengeSkipRequest(BaseModel):
+    skip_reason: str = Field(
+        pattern="^(busy|forgot|too_difficult|too_anxious|not_relevant|disliked_activity|situation_unavailable|other)$",
+    )
+
+    skip_reason_detail: str | None = None

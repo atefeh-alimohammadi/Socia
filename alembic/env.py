@@ -14,6 +14,13 @@ from app.models.emotion_analysis import EmotionAnalysis
 from app.models.user_memory import UserMemory
 from app.models.conversation_emotion import ConversationEmotion
 from app.models.behavior_observation import BehaviorObservation
+from app.models.episodic_memory import EpisodicMemory
+from app.models.user_memory_history import UserMemoryHistory
+from app.models.user_memory_evidence import UserMemoryEvidence
+from app.models.journey import Journey
+from app.models.message_feedback import MessageFeedback
+from app.models.knowledge_entity import KnowledgeEntity
+from app.models.knowledge_edge import KnowledgeEdge
 
 from dotenv import load_dotenv
 import os

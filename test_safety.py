@@ -15,10 +15,24 @@ from app.models.user_memory import UserMemory
 from app.models.episodic_memory import EpisodicMemory
 from app.models.user_memory_history import UserMemoryHistory
 from app.models.user_memory_evidence import UserMemoryEvidence
+from app.database.database import SessionLocal
 
-from app.services.memory_service import synthesize_patterns_from_observations
+from app.services.safety_service import check_message_safety
 
 
-synthesize_patterns_from_observations(user_id=4)
+tests = [
+    "I want to kill myself.",
+    "I want to hurt myself.",
+    "I am feeling suicidal.",
+    "I want to end my life.",
+    "I'm so frustrated I could scream.",
+    "I'm nervous about my presentation.",
+    "I'm having a terrible day.",
+]
 
-print("done")
+
+for text in tests:
+    result = check_message_safety(text)
+
+    print("\nMessage:", text)
+    print("Result:", result)

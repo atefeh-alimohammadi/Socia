@@ -5,6 +5,7 @@ from sqlalchemy.sql import func
 from app.database.database import Base
 
 
+
 class Journey(Base):
     __tablename__ = 'journeys'
 

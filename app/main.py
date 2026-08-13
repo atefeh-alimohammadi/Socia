@@ -11,20 +11,23 @@ from app.models.journey_challenge import JourneyChallenge
 from app.models.emotion_analysis import EmotionAnalysis
 from app.models.conversation_emotion import ConversationEmotion
 from app.models.behavior_observation import BehaviorObservation
-
-
+from app.models.user_memory_history import UserMemoryHistory
+from app.models.user_memory_evidence import UserMemoryEvidence
+from app.models.episodic_memory import EpisodicMemory
+from app.models.message_feedback import MessageFeedback
+from app.models.knowledge_entity import KnowledgeEntity
+from app.models.knowledge_edge import KnowledgeEdge
 
 
 from app.api.deps import get_current_user
 from app.schemas.users import UserResponse
 from fastapi import Depends
 
-from app.api import conversation, auth, journal, memory, analytics, onboarding, journey
+from app.api import conversation, auth, journal, memory, analytics, onboarding, journey, feedback
 
 from app.core.logging_config import setup_logging
 
 from fastapi.middleware.cors import CORSMiddleware
-
 
 setup_logging()
 app = FastAPI(
@@ -49,6 +52,7 @@ app.include_router(memory.router, prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
 app.include_router(onboarding.router, prefix="/api/v1")
 app.include_router(journey.router, prefix="/api/v1")
+app.include_router(feedback.router, prefix="/api/v1")
 @app.get("/")
 async def root():
     return {"message": "Hello World"}

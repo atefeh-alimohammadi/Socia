@@ -33,3 +33,16 @@ class Message(Base):
         "BehaviorObservation",
         back_populates="message"
     )
+
+    episodic_memories = relationship(
+        "EpisodicMemory",
+        back_populates="message"
+    )
+
+    feedback = relationship(
+        "MessageFeedback",
+        back_populates="message",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+

@@ -38,3 +38,28 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    episodic_memories = relationship(
+        "EpisodicMemory",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    message_feedbacks = relationship(
+        "MessageFeedback",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    knowledge_entities = relationship(
+        "KnowledgeEntity",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    knowledge_edges = relationship(
+        "KnowledgeEdge",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+

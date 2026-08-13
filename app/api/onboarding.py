@@ -84,7 +84,7 @@ def complete_onboarding_answer(
         "preferred_name",
         "primary_motivation",
         "communication_challenge",
-        "emotional_response_pattern",
+        "emotional_response",
         "growth_goal",
     ]
 

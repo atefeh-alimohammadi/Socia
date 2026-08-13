@@ -16,6 +16,8 @@ JourneyResponse,
 JourneyDetailResponse,
 ChallengeResponse,
 JourneyFromPatternRequest,
+ChallengeCompleteRequest,
+ChallengeSkipRequest,
 )
 
 from app.utils.token import get_current_user
@@ -26,7 +28,8 @@ format_context_for_prompt
 )
 
 from app.services.journey_service import (
-generate_journey_challenges
+generate_journey_outline,
+generate_next_challenge,
 )
 
 from fastapi import Body
@@ -39,12 +42,13 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=JourneyDetailResponse)
-def create_journey(
-        data: JourneyCreate,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
-):
+def _create_journey_with_first_challenge(
+        db: Session,
+        current_user: User,
+        title: str,
+        description: str,
+        source: str,
+) -> Journey:
 
     context = assemble_user_context(
         current_user.id,
@@ -53,42 +57,65 @@ def create_journey(
 
     formatted_context = format_context_for_prompt(context)
 
-
-    generated = generate_journey_challenges(
-        title=data.title,
-        description=data.description,
+    outline = generate_journey_outline(
+        title=title,
+        description=description,
         user_context=formatted_context,
     )
 
     journey = Journey(
         user_id=current_user.id,
-        title=data.title,
-        description=data.description,
-        source="user_created",
+        title=title,
+        description=description,
+        source=source,
         status="active",
         day_current=1,
-        day_total=generated["day_total"],
+        day_total=outline["day_total"],
     )
 
     db.add(journey)
     db.commit()
     db.refresh(journey)
 
-    for challenge in generated["challenges"]:
-        db_challenge = JourneyChallenge(
-            journey_id=journey.id,
-            day_number=challenge["day_number"],
-            title=challenge["title"],
-            description=challenge["description"],
-            status="pending"
-        )
+    first_challenge = generate_next_challenge(
+        title=title,
+        description=description,
+        user_context=formatted_context,
+        day_number=1,
+        previous_challenge=None,
+    )
 
-        db.add(db_challenge)
+    db_challenge = JourneyChallenge(
+        journey_id=journey.id,
+        day_number=1,
+        title=first_challenge["title"],
+        description=first_challenge["description"],
+        status="pending"
+    )
 
+    db.add(db_challenge)
     db.commit()
     db.refresh(journey)
 
-    return{
+    return journey
+
+
+@router.post("/", response_model=JourneyDetailResponse)
+def create_journey(
+        data: JourneyCreate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+):
+
+    journey = _create_journey_with_first_challenge(
+        db=db,
+        current_user=current_user,
+        title=data.title,
+        description=data.description,
+        source="user_created",
+    )
+
+    return {
         "journey": journey,
         "challenges": journey.challenges,
         "today_challenge": journey.challenges[0]
@@ -141,9 +168,64 @@ def get_journey(
         "today_challenge": today
     }
 
+
+def _advance_journey_and_generate_next(
+        db: Session,
+        journey: Journey,
+        current_challenge: JourneyChallenge | None,
+        current_user: User,
+) -> JourneyChallenge | None:
+    """
+    Advances day_current and, if the journey isn't finished, generates
+    the next challenge based on the outcome of current_challenge.
+    Returns the newly created challenge, or None if the journey is
+    now complete.
+    """
+
+    if journey.day_current < journey.day_total:
+        journey.day_current += 1
+    else:
+        journey.status = "completed"
+        db.commit()
+        db.refresh(journey)
+        return None
+
+    db.commit()
+
+    context = assemble_user_context(
+        current_user.id,
+        db
+    )
+
+    formatted_context = format_context_for_prompt(context)
+
+    next_challenge_data = generate_next_challenge(
+        title=journey.title,
+        description=journey.description,
+        user_context=formatted_context,
+        day_number=journey.day_current,
+        previous_challenge=current_challenge,
+    )
+
+    next_challenge = JourneyChallenge(
+        journey_id=journey.id,
+        day_number=journey.day_current,
+        title=next_challenge_data["title"],
+        description=next_challenge_data["description"],
+        status="pending",
+    )
+
+    db.add(next_challenge)
+    db.commit()
+    db.refresh(journey)
+
+    return next_challenge
+
+
 @router.post("/{journey_id}/complete-challenge", response_model=JourneyDetailResponse)
 def complete_challenge(
         journey_id: int,
+        feedback: ChallengeCompleteRequest = Body(default=ChallengeCompleteRequest()),
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user),
 ):
@@ -172,15 +254,16 @@ def complete_challenge(
     if current_challenge:
         current_challenge.status = "completed"
         current_challenge.completed_at = datetime.now(timezone.utc)
+        current_challenge.difficulty_feedback = feedback.difficulty_feedback
+        current_challenge.emotional_response = feedback.emotional_response
+        db.commit()
 
-    if journey.day_current < journey.day_total:
-        journey.day_current += 1
-
-    else:
-        journey.status = "completed"
-
-    db.commit()
-    db.refresh(journey)
+    _advance_journey_and_generate_next(
+        db=db,
+        journey=journey,
+        current_challenge=current_challenge,
+        current_user=current_user,
+    )
 
     today = (
         db.query(JourneyChallenge)
@@ -276,50 +359,79 @@ def create_journey_from_pattern(
     if not memory:
         raise HTTPException(status_code=404, detail="Memory not found")
 
-    context = assemble_user_context(
-        current_user.id,
-        db,
-    )
-
-    formatted_context = format_context_for_prompt(
-        context,
-    )
-
-    generated = generate_journey_challenges(
-        title=f"Working on {memory.tag.replace('_', ' ')}",
-        description=memory.content,
-        user_context=formatted_context,
-    )
-
-    journey = Journey(
-        user_id=current_user.id,
+    journey = _create_journey_with_first_challenge(
+        db=db,
+        current_user=current_user,
         title=f"Working on {memory.tag.replace('_', ' ')}",
         description=memory.content,
         source="ai_suggested",
-        status="active",
-        day_current=1,
-        day_total=generated["day_total"],
     )
-
-    db.add(journey)
-    db.commit()
-    db.refresh(journey)
-
-    for challenge in generated["challenges"]:
-        db_challenge = JourneyChallenge(
-            journey_id=journey.id,
-            day_number=challenge["day_number"],
-            title=challenge["title"],
-            description=challenge["description"],
-            status="pending",
-        )
-        db.add(db_challenge)
-
-    db.commit()
-    db.refresh(journey)
 
     return {
         "journey": journey,
         "challenges": journey.challenges,
         "today_challenge": journey.challenges[0],
+    }
+
+
+@router.post("/{journey_id}/skip-challenge", response_model=JourneyDetailResponse)
+def skip_challenge(
+    journey_id: int,
+    skip_data: ChallengeSkipRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    journey = (
+        db.query(Journey)
+        .filter(
+            Journey.id == journey_id,
+            Journey.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not journey:
+        raise HTTPException(
+            status_code=404,
+            detail="Journey not found",
+        )
+
+    current_challenge = (
+        db.query(JourneyChallenge)
+        .filter(
+            JourneyChallenge.journey_id == journey_id,
+            JourneyChallenge.day_number == journey.day_current,
+        )
+        .first()
+    )
+
+    if current_challenge:
+        current_challenge.status = "skipped"
+        current_challenge.skip_reason = skip_data.skip_reason
+        current_challenge.skip_reason_detail = skip_data.skip_reason_detail
+        db.commit()
+
+    _advance_journey_and_generate_next(
+        db=db,
+        journey=journey,
+        current_challenge=current_challenge,
+        current_user=current_user,
+    )
+
+    today = (
+        db.query(JourneyChallenge)
+        .filter(
+            JourneyChallenge.journey_id == journey_id,
+            JourneyChallenge.day_number == journey.day_current,
+        )
+        .first()
+    )
+
+    return {
+        "journey": journey,
+        "challenges": sorted(
+            journey.challenges,
+            key=lambda x: x.day_number,
+        ),
+        "today_challenge": today,
     }

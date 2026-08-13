@@ -14,6 +14,7 @@ from app.models.user import User
 from app.models.conversation_emotion import ConversationEmotion
 from app.models.user_memory import UserMemory
 
+
 from app.schemas.analytics import (
     EmotionAnalyticsResponse,
     EmotionTimelineResponse,

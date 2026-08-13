@@ -1,8 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.user_memory import UserMemory
-from app.models.journal_entry import JournalEntry
-from app.models.emotion_analysis import EmotionAnalysis
+from app.models.conversation_emotion import ConversationEmotion
 from app.models.journey import Journey
 
 
@@ -18,10 +17,9 @@ def assemble_user_context(
     )
 
     emotions = (
-        db.query(EmotionAnalysis)
-        .join(JournalEntry)
-        .filter(JournalEntry.user_id == user_id)
-        .order_by(EmotionAnalysis.created_at.desc())
+        db.query(ConversationEmotion)
+        .filter(ConversationEmotion.user_id == user_id)
+        .order_by(ConversationEmotion.created_at.desc())
         .limit(10)
         .all()
     )
@@ -66,7 +64,7 @@ def format_context_for_prompt(
         for emotion in context["recent_emotions"]:
             text += (
                 f"- {emotion.emotion}: "
-                f"{emotion.confidence_score}\n"
+                f"{emotion.intensity}\n"
             )
 
 
