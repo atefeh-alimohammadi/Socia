@@ -1,4 +1,3 @@
-
 import json
 import logging
 
@@ -72,6 +71,20 @@ message relevant to that specific emotion or behavior.
 For entities, extract only clearly mentioned concrete entities that are
 useful for understanding recurring patterns in the user's life.
 
+For EACH emotion, also estimate two dimensional emotional scores:
+
+- valence: how positive or negative the emotion is.
+  - -1.0 = strongly negative / distressing
+  -  0.0 = neutral
+  - +1.0 = strongly positive / pleasant
+
+- arousal: how calm or intense the emotional state is.
+  - 0.0 = very calm / low activation
+  - 1.0 = highly activated / intense
+
+These dimensional scores are estimates, not diagnoses.
+Use the emotional context of the specific evidence when assigning them.
+
 Entity types:
 
 - person: a person or group of people relevant to the message
@@ -90,6 +103,8 @@ Return ONLY valid JSON:
 {{
 "emotion":"anxiety",
 "intensity":0.8,
+"valence":-0.7,
+"arousal":0.8,
 "evidence":"I kept worrying that I would forget everything during the presentation."
 }}
 ],
@@ -131,6 +146,8 @@ Rules:
 - Only extract clearly present signals.
 - Do not invent patterns.
 - Intensity and confidence must be between 0 and 1.
+- Valence must be between -1 and 1.
+- Arousal must be between 0 and 1.
 - Evidence must be one sentence, grounded in the specific part of the
   message relevant to that emotion/behavior.
 - Do not use generic restatements of the tag or emotion name.
@@ -143,6 +160,10 @@ Rules:
 - Use lowercase entity names.
 - If no useful entities are present, return an empty entities list.
 - Return empty lists when no signals exist.
+- If valence or arousal cannot be reliably estimated, return null for
+  that field rather than inventing a value.
+- A missing or invalid valence/arousal value must NOT cause the emotion
+  itself to be discarded.
 - Return JSON only.
 """
 
@@ -198,9 +219,6 @@ def analyze_conversation_message(
             []
         )
 
-        # ---------------------------------------------------------
-        # Emotions
-        # ---------------------------------------------------------
 
         extracted_memories = []
 
@@ -214,9 +232,18 @@ def analyze_conversation_message(
                 "intensity"
             )
 
+            valence = item.get(
+                "valence"
+            )
+
+            arousal = item.get(
+                "arousal"
+            )
+
             emotion_evidence = item.get(
                 "evidence"
             )
+
 
             if emotion_name not in VALID_EMOTIONS:
                 continue
@@ -233,11 +260,30 @@ def analyze_conversation_message(
             if not emotion_evidence:
                 continue
 
+
+            if (
+                    isinstance(valence, bool)
+                    or not isinstance(valence, (int, float))
+                    or valence < -1
+                    or valence > 1
+            ):
+                valence = None
+
+            if (
+                    isinstance(arousal, bool)
+                    or not isinstance(arousal, (int, float))
+                    or arousal < 0
+                    or arousal > 1
+            ):
+                arousal = None
+
             emotion = ConversationEmotion(
                 message_id=message_id,
                 user_id=user_id,
                 emotion=emotion_name,
                 intensity=intensity,
+                valence=valence,
+                arousal=arousal,
             )
 
             db.add(emotion)
@@ -260,9 +306,6 @@ def analyze_conversation_message(
                 )
             )
 
-        # ---------------------------------------------------------
-        # Behaviors
-        # ---------------------------------------------------------
 
         for item in observations:
 
@@ -324,16 +367,9 @@ def analyze_conversation_message(
                 )
             )
 
-        # ---------------------------------------------------------
-        # Make sure all episodic memories have IDs
-        # before creating KnowledgeEdge rows.
-        # ---------------------------------------------------------
 
         db.flush()
 
-        # ---------------------------------------------------------
-        # Knowledge Graph
-        # ---------------------------------------------------------
 
         for item in entities:
 
@@ -366,7 +402,6 @@ def analyze_conversation_message(
             if not entity_name:
                 continue
 
-            # Find existing entity for this user.
             entity = (
                 db.query(KnowledgeEntity)
                 .filter(
@@ -376,7 +411,6 @@ def analyze_conversation_message(
                 .first()
             )
 
-            # Create entity if it does not exist.
             if entity is None:
 
                 entity = KnowledgeEntity(
@@ -388,8 +422,7 @@ def analyze_conversation_message(
                 db.add(entity)
                 db.flush()
 
-            # Connect this entity to every emotion/behavior
-            # extracted from the same message.
+
             for memory, tag in extracted_memories:
 
                 edge = KnowledgeEdge(
@@ -403,9 +436,6 @@ def analyze_conversation_message(
 
         db.commit()
 
-        # ---------------------------------------------------------
-        # Existing pattern synthesis
-        # ---------------------------------------------------------
 
         total_observations = (
             db.query(BehaviorObservation)
@@ -437,4 +467,3 @@ def analyze_conversation_message(
     finally:
 
         db.close()
-

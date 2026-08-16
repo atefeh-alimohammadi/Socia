@@ -45,6 +45,16 @@ class ConversationEmotion(Base):
         nullable=False
     )
 
+    valence = Column(
+        Float,
+        nullable=True
+    )
+
+    arousal = Column(
+        Float,
+        nullable=True
+    )
+
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now()
@@ -80,5 +90,14 @@ class ConversationEmotion(Base):
             )
             """,
             name="check_conversation_emotion"
+        ),
+        CheckConstraint(
+            "valence >= -1.0 AND valence <= 1.0 OR valence IS NULL",
+            name="check_conversation_emotion_valence"
+        ),
+
+        CheckConstraint(
+            "arousal >= 0.0 AND arousal <= 1.0 OR arousal IS NULL",
+            name="check_conversation_emotion_arousal"
         ),
     )
