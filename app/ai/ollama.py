@@ -5,6 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 SYSTEM_PROMPT = """
 You are Socia, an AI companion.
 
@@ -61,6 +62,29 @@ When using any of this information:
 """
 
 
+COMMUNICATION_POLICY_INSTRUCTIONS = {
+    "gentle": """
+Communication pacing preference:
+- Use a slower, gentler pace.
+- Be more validating and emotionally supportive.
+- Avoid pushing the user toward immediate action.
+- Prefer small, manageable suggestions over demanding steps.
+- Give the user room to reflect before suggesting what to do next.
+""",
+
+    "direct": """
+Communication pacing preference:
+- Use a more direct and action-oriented pace.
+- Be clear and concise when suggesting next steps.
+- When appropriate, encourage the user to move from reflection toward
+  practical action.
+- Avoid unnecessary over-explaining or excessive reassurance.
+""",
+
+    "standard": "",
+}
+
+
 def get_ai_response(
     user_message: str,
     conversation_history: list,
@@ -68,11 +92,37 @@ def get_ai_response(
     relevant_episodic_memories: list | None = None,
     recent_emotions: list | None = None,
     active_journeys: list[str] | None = None,
+    communication_policy: str | None = None,
     additional_context: str | None = None,
 ) -> str:
     try:
 
         system_content = SYSTEM_PROMPT
+
+        # Milestone 12:
+        # Apply the communication policy only when it is
+        # explicitly provided and has a non-empty instruction.
+        policy_instruction = COMMUNICATION_POLICY_INSTRUCTIONS.get(
+            communication_policy,
+            ""
+        )
+
+        if policy_instruction:
+            system_content += (
+                "\n\nCommunication policy for this user:\n"
+                + policy_instruction
+            )
+
+        # Temporary verification log for Milestone 12.
+        logger.info(
+            "Communication policy applied: %s",
+            communication_policy,
+        )
+
+        logger.info(
+            "Communication policy instruction:\n%s",
+            policy_instruction if policy_instruction else "[none]",
+        )
 
         if user_memories:
             memory_text = "\n".join(
@@ -120,8 +170,8 @@ def get_ai_response(
 
         if additional_context:
             system_content += (
-                    "\n\nAdditional guidance for this response:\n"
-                    + additional_context
+                "\n\nAdditional guidance for this response:\n"
+                + additional_context
             )
 
         messages = [
@@ -140,26 +190,24 @@ def get_ai_response(
             })
 
         response = chat(
-                model="qwen2.5:7b",
-                messages=messages,
-            )
+            model="qwen2.5:7b",
+            messages=messages,
+        )
 
         return response.message.content
-
 
     except Exception as e:
 
         logger.error(
-
             "Ollama error: %s",
-
             e,
-
             exc_info=True,
-
         )
 
-        raise HTTPException(status_code=502, detail="AI service unavailable")
+        raise HTTPException(
+            status_code=502,
+            detail="AI service unavailable"
+        )
 
 
 def generate_ai_response(prompt: str):
@@ -171,7 +219,10 @@ def generate_ai_response(prompt: str):
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are a JSON generation assistant. Return only valid JSON."
+                    "content": (
+                        "You are a JSON generation assistant. "
+                        "Return only valid JSON."
+                    )
                 },
                 {
                     "role": "user",

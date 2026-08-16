@@ -27,9 +27,13 @@ from app.services.context_assembler import assemble_user_context
 from app.services.safety_service import check_message_safety
 from app.services.orchestrator import route_message
 from app.services.reflection_service import check_response_consistency
+from app.services.personalization_service import get_communication_policy
+
 import logging
 
+
 logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/conversation",
     tags=["Conversation"]
@@ -85,6 +89,7 @@ def send_message(
     db.add(user_message)
     db.commit()
     db.refresh(user_message)
+
     safety_result = check_message_safety(user_message.content)
 
     if safety_result["risk_level"] == "high":
@@ -151,6 +156,20 @@ def send_message(
             "active_journeys": [],
         }
 
+    # Milestone 12:
+    # Compute the user's communication policy from existing feedback.
+    # This is deterministic and does not require an LLM call.
+    communication_policy = get_communication_policy(
+        db=db,
+        user_id=current_user.id,
+    )
+
+    logger.info(
+        "Communication policy for user %s: %s",
+        current_user.id,
+        communication_policy,
+    )
+
     ai_response = get_ai_response(
         user_message.content,
         conversation_history=conversation_history,
@@ -158,6 +177,7 @@ def send_message(
         relevant_episodic_memories=relevant_episodic_memories,
         recent_emotions=user_context["recent_emotions"],
         active_journeys=user_context["active_journeys"],
+        communication_policy=communication_policy["pacing"],
     )
 
     reflection_result = check_response_consistency(
@@ -173,15 +193,15 @@ def send_message(
         )
 
         correction_prompt = f"""
-    The previous response may be inconsistent with the user's context.
+The previous response may be inconsistent with the user's context.
 
-    Issue detected:
-    {reflection_result["issue"]}
+Issue detected:
+{reflection_result["issue"]}
 
-    Generate a corrected response to the user's original message.
+Generate a corrected response to the user's original message.
 
-    Do not mention this reflection process to the user.
-    """
+Do not mention this reflection process to the user.
+"""
 
         ai_response = get_ai_response(
             user_message.content,
@@ -190,6 +210,7 @@ def send_message(
             relevant_episodic_memories=relevant_episodic_memories,
             recent_emotions=user_context["recent_emotions"],
             active_journeys=user_context["active_journeys"],
+            communication_policy=communication_policy["pacing"],
             additional_context=correction_prompt,
         )
 
@@ -247,7 +268,6 @@ def get_conversations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-
     conversations = (
         db.query(ConversationSession)
         .filter(
@@ -271,7 +291,6 @@ def get_conversation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-
     conversation = get_user_conversation(
         db=db,
         session_id=session_id,
