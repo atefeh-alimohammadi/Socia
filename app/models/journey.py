@@ -25,6 +25,8 @@ class Journey(Base):
 
     day_total = Column(Integer, nullable=False)
 
+    source_memory_id = Column(Integer, ForeignKey('user_memory.id'), nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

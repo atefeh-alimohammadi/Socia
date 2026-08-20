@@ -23,6 +23,7 @@ class JourneyResponse(BaseModel):
     status: str
     day_current: int
     day_total: int
+    source_memory_id: int | None
     created_at: datetime
 
     model_config = ConfigDict(

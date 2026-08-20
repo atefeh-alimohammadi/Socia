@@ -13,7 +13,11 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.conversation_emotion import ConversationEmotion
 from app.models.user_memory import UserMemory
+from app.models.emotion_analysis import EmotionAnalysis
+from app.models.journal_entry import JournalEntry
 
+from app.services.emotion_analytics_service import get_emotion_trend
+from app.services.knowledge_graph_service import get_related_entities_for_tag
 
 from app.schemas.analytics import (
     EmotionAnalyticsResponse,
@@ -196,4 +200,34 @@ def get_behavior_patterns(
             UserMemory.evidence_count.desc()
         )
         .all()
+    )
+
+
+@router.get(
+    "/emotion-trend",
+)
+def get_emotion_trend_route(
+    days: int = 14,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_emotion_trend(
+        db=db,
+        user_id=current_user.id,
+        days=days,
+    )
+
+
+@router.get(
+    "/related-entities",
+)
+def get_related_entities_route(
+    tag: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_related_entities_for_tag(
+        db=db,
+        user_id=current_user.id,
+        tag=tag,
     )
