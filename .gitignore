@@ -1,5 +1,24 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
+
+# Environment / IDE
 .env
 .idea/
+.vscode/
+
+# ML datasets / generated data
+ml/data/
+
+# Model checkpoints / weights
+ml/models/checkpoints/
+*.pt
+*.pth
+*.ckpt
+
+# Large / raw experiment data
+*.jsonl
+
+# Logs
+*.log
