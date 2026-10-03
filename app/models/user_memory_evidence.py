@@ -27,7 +27,7 @@ class UserMemoryEvidence(Base):
 
     episodic_memory_id = Column(
         Integer,
-        ForeignKey("episodic_memory.id"),
+        ForeignKey("episodic_memory.id", ondelete="CASCADE"),
         nullable=False
     )
 

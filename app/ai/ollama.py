@@ -3,6 +3,9 @@ from fastapi import HTTPException
 import httpx
 import logging
 
+from app.core.config import settings
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,11 +24,13 @@ Your goals:
 You may be given several different kinds of information about this user.
 They are not all the same, and you must treat them differently:
 
-1. "What do you know about this user" — these are synthesized, recurring
-patterns, built from multiple pieces of evidence over time. You may treat
-these as established, general facts about the user, and it is fine to
-speak about them as ongoing tendencies (e.g. "you often...", "you tend
-to...").
+1. "What do you know about this user" — these are synthesized behavioral
+signals derived from multiple pieces of evidence over time. They may
+represent recurring tendencies, but they are not definitive facts about
+the user. Treat them as contextual hypotheses that may be incomplete or
+incorrect. You may use them to personalize the conversation, but do not
+present them as certain personality traits, diagnoses, or permanent
+characteristics.
 
 2. "Relevant moments from past conversations with this user" — these are
 individual, specific things the user said on a single past occasion. Each
@@ -99,7 +104,6 @@ def get_ai_response(
 
         system_content = SYSTEM_PROMPT
 
-        # Milestone 12:
         # Apply the communication policy only when it is
         # explicitly provided and has a non-empty instruction.
         policy_instruction = COMMUNICATION_POLICY_INSTRUCTIONS.get(
@@ -113,17 +117,6 @@ def get_ai_response(
                 + policy_instruction
             )
 
-        # Temporary verification log for Milestone 12.
-        logger.info(
-            "Communication policy applied: %s",
-            communication_policy,
-        )
-
-        logger.info(
-            "Communication policy instruction:\n%s",
-            policy_instruction if policy_instruction else "[none]",
-        )
-
         if user_memories:
             memory_text = "\n".join(
                 [f"- {m.content}" for m in user_memories]
@@ -131,7 +124,8 @@ def get_ai_response(
 
             system_content += (
                 "\n\nWhat do you know about this user "
-                "(established, recurring patterns):\n"
+                "(synthesized behavioral signals from previous "
+                "interactions):\n"
                 + memory_text
             )
 
@@ -177,7 +171,7 @@ def get_ai_response(
         messages = [
             {
                 "role": "system",
-                "content": system_content
+                "content": system_content,
             }
         ]
 
@@ -186,52 +180,47 @@ def get_ai_response(
 
             messages.append({
                 "role": role,
-                "content": msg.content
+                "content": msg.content,
             })
 
         response = chat(
-            model="qwen2.5:7b",
+            model=settings.LLM_MODEL,
             messages=messages,
         )
 
         return response.message.content
 
-    except Exception as e:
-
-        logger.error(
-            "Ollama error: %s",
-            e,
-            exc_info=True,
-        )
+    except Exception:
+        logger.exception("AI service request failed")
 
         raise HTTPException(
             status_code=502,
-            detail="AI service unavailable"
+            detail="AI service unavailable",
         )
 
 
 def generate_ai_response(prompt: str):
 
     response = httpx.post(
-        "http://127.0.0.1:11434/api/chat",
+        f"{settings.OLLAMA_URL}/api/chat",
         json={
-            "model": "qwen2.5:7b",
+            "model": settings.LLM_MODEL,
             "messages": [
                 {
                     "role": "system",
                     "content": (
                         "You are a JSON generation assistant. "
                         "Return only valid JSON."
-                    )
+                    ),
                 },
                 {
                     "role": "user",
-                    "content": prompt
-                }
+                    "content": prompt,
+                },
             ],
-            "stream": False
+            "stream": False,
         },
-        timeout=120
+        timeout=120,
     )
 
     response.raise_for_status()

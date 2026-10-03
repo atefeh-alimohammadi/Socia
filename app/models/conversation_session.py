@@ -24,7 +24,8 @@ class ConversationSession(Base):
 
     behavior_observations = relationship(
         "BehaviorObservation",
-        back_populates="session"
+        back_populates="session",
+        cascade="all, delete-orphan"
     )
 
 

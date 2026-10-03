@@ -26,13 +26,13 @@ class EpisodicMemory(Base):
 
     session_id = Column(
         Integer,
-        ForeignKey('conversation_sessions.id'),
+        ForeignKey('conversation_sessions.id', ondelete="CASCADE"),
         nullable=False,
     )
 
     message_id = Column(
         Integer,
-        ForeignKey("messages.id"),
+        ForeignKey("messages.id", ondelete="CASCADE"),
         nullable=False,
     )
 

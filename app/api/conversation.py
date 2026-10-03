@@ -125,8 +125,11 @@ def send_message(
         db.query(Message)
         .filter(Message.session_id == conversation.id)
         .order_by(Message.created_at)
+        .limit(20)
         .all()
     )
+
+    conversation_history.reverse()
 
     user_memories = (
         db.query(UserMemory)

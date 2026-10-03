@@ -25,7 +25,7 @@ class ConversationEmotion(Base):
 
     message_id = Column(
         Integer,
-        ForeignKey("messages.id"),
+        ForeignKey("messages.id", ondelete="CASCADE"),
         nullable=False
     )
 

@@ -1,0 +1,908 @@
+[
+  {
+    "pattern_id": "pat_0000",
+    "categories": [
+      "avoidance",
+      "withdrawal"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0001",
+    "categories": [
+      "hope",
+      "anxiety",
+      "fear"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0002",
+    "categories": [
+      "confidence",
+      "self_criticism",
+      "withdrawal",
+      "anxiety"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0003",
+    "categories": [
+      "fear",
+      "reassurance_seeking",
+      "emotional_dysregulation",
+      "excitement"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0004",
+    "categories": [
+      "sadness",
+      "anxiety",
+      "emotional_dysregulation"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0005",
+    "categories": [
+      "shame",
+      "confidence",
+      "approach_coping",
+      "sadness"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0006",
+    "categories": [
+      "frustration",
+      "emotional_dysregulation",
+      "fear"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0007",
+    "categories": [
+      "confidence",
+      "emotional_dysregulation",
+      "excitement",
+      "hope"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0008",
+    "categories": [
+      "fear",
+      "withdrawal",
+      "emotional_dysregulation"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0009",
+    "categories": [
+      "reassurance_seeking",
+      "withdrawal"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0010",
+    "categories": [
+      "approach_coping",
+      "sadness",
+      "overthinking",
+      "self_criticism"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0011",
+    "categories": [
+      "frustration",
+      "avoidance",
+      "confidence"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0012",
+    "categories": [
+      "reassurance_seeking",
+      "self_criticism",
+      "avoidance",
+      "confidence"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0013",
+    "categories": [
+      "anxiety",
+      "sadness",
+      "overthinking"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0014",
+    "categories": [
+      "fear",
+      "sadness",
+      "approach_coping",
+      "withdrawal"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0015",
+    "categories": [
+      "withdrawal",
+      "shame",
+      "avoidance",
+      "frustration"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0016",
+    "categories": [
+      "hope",
+      "shame",
+      "withdrawal"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0017",
+    "categories": [
+      "approach_coping",
+      "confidence",
+      "sadness",
+      "anxiety"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0018",
+    "categories": [
+      "hope",
+      "self_criticism",
+      "shame"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0019",
+    "categories": [
+      "anxiety",
+      "reassurance_seeking",
+      "withdrawal"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0020",
+    "categories": [
+      "fear",
+      "reassurance_seeking",
+      "excitement"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0021",
+    "categories": [
+      "overthinking",
+      "avoidance",
+      "shame"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0022",
+    "categories": [
+      "frustration",
+      "approach_coping",
+      "sadness"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0023",
+    "categories": [
+      "hope",
+      "emotional_dysregulation",
+      "sadness"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0024",
+    "categories": [
+      "hope",
+      "emotional_dysregulation",
+      "shame",
+      "frustration"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0025",
+    "categories": [
+      "shame",
+      "anxiety"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0026",
+    "categories": [
+      "emotional_dysregulation",
+      "confidence"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0027",
+    "categories": [
+      "excitement",
+      "sadness"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0028",
+    "categories": [
+      "withdrawal",
+      "anxiety",
+      "frustration"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0029",
+    "categories": [
+      "approach_coping",
+      "reassurance_seeking",
+      "anxiety"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0030",
+    "categories": [
+      "confidence",
+      "self_criticism",
+      "overthinking"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0031",
+    "categories": [
+      "fear",
+      "emotional_dysregulation",
+      "approach_coping",
+      "avoidance"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0032",
+    "categories": [
+      "reassurance_seeking",
+      "self_criticism",
+      "avoidance"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0033",
+    "categories": [
+      "shame",
+      "confidence"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0034",
+    "categories": [
+      "hope",
+      "fear",
+      "emotional_dysregulation"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0035",
+    "categories": [
+      "approach_coping",
+      "hope",
+      "self_criticism"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0036",
+    "categories": [
+      "reassurance_seeking",
+      "fear",
+      "self_criticism"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0037",
+    "categories": [
+      "overthinking",
+      "frustration"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0038",
+    "categories": [
+      "sadness",
+      "withdrawal",
+      "confidence"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0039",
+    "categories": [
+      "fear",
+      "overthinking",
+      "emotional_dysregulation"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0040",
+    "categories": [
+      "avoidance",
+      "anxiety",
+      "sadness",
+      "fear"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0041",
+    "categories": [
+      "anxiety",
+      "excitement"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0042",
+    "categories": [
+      "reassurance_seeking",
+      "frustration",
+      "withdrawal"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0043",
+    "categories": [
+      "reassurance_seeking",
+      "withdrawal",
+      "confidence"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0044",
+    "categories": [
+      "self_criticism",
+      "sadness"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0045",
+    "categories": [
+      "anxiety",
+      "frustration"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0046",
+    "categories": [
+      "overthinking",
+      "hope",
+      "shame"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0047",
+    "categories": [
+      "excitement",
+      "confidence",
+      "fear"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0048",
+    "categories": [
+      "fear",
+      "approach_coping",
+      "overthinking"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0049",
+    "categories": [
+      "fear",
+      "confidence",
+      "excitement"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0050",
+    "categories": [
+      "approach_coping",
+      "sadness",
+      "fear",
+      "anxiety"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0051",
+    "categories": [
+      "anxiety",
+      "approach_coping",
+      "frustration"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0052",
+    "categories": [
+      "reassurance_seeking",
+      "approach_coping",
+      "shame"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0053",
+    "categories": [
+      "approach_coping",
+      "confidence"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0054",
+    "categories": [
+      "shame",
+      "withdrawal",
+      "sadness",
+      "hope"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0055",
+    "categories": [
+      "fear",
+      "frustration",
+      "reassurance_seeking"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0056",
+    "categories": [
+      "withdrawal",
+      "sadness",
+      "fear"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0057",
+    "categories": [
+      "overthinking",
+      "confidence",
+      "anxiety"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0058",
+    "categories": [
+      "approach_coping",
+      "avoidance",
+      "self_criticism"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0059",
+    "categories": [
+      "shame",
+      "fear",
+      "anxiety"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0060",
+    "categories": [
+      "overthinking",
+      "fear",
+      "approach_coping",
+      "withdrawal"
+    ],
+    "k": 4,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0061",
+    "categories": [
+      "anxiety",
+      "approach_coping",
+      "sadness"
+    ],
+    "k": 3,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0062",
+    "categories": [
+      "approach_coping",
+      "frustration"
+    ],
+    "k": 2,
+    "split": "train"
+  },
+  {
+    "pattern_id": "pat_0063",
+    "categories": [
+      "overthinking",
+      "reassurance_seeking",
+      "fear",
+      "avoidance"
+    ],
+    "k": 4,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0064",
+    "categories": [
+      "fear",
+      "hope",
+      "reassurance_seeking"
+    ],
+    "k": 3,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0065",
+    "categories": [
+      "overthinking",
+      "emotional_dysregulation",
+      "anxiety"
+    ],
+    "k": 3,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0066",
+    "categories": [
+      "self_criticism",
+      "anxiety",
+      "approach_coping"
+    ],
+    "k": 3,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0067",
+    "categories": [
+      "confidence",
+      "overthinking",
+      "hope"
+    ],
+    "k": 3,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0068",
+    "categories": [
+      "reassurance_seeking",
+      "sadness"
+    ],
+    "k": 2,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0069",
+    "categories": [
+      "withdrawal",
+      "frustration",
+      "emotional_dysregulation"
+    ],
+    "k": 3,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0070",
+    "categories": [
+      "sadness",
+      "confidence",
+      "frustration"
+    ],
+    "k": 3,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0071",
+    "categories": [
+      "reassurance_seeking",
+      "overthinking"
+    ],
+    "k": 2,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0072",
+    "categories": [
+      "hope",
+      "self_criticism",
+      "fear"
+    ],
+    "k": 3,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0073",
+    "categories": [
+      "hope",
+      "reassurance_seeking",
+      "sadness"
+    ],
+    "k": 3,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0074",
+    "categories": [
+      "frustration",
+      "sadness",
+      "confidence",
+      "fear"
+    ],
+    "k": 4,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0075",
+    "categories": [
+      "excitement",
+      "reassurance_seeking",
+      "confidence",
+      "self_criticism"
+    ],
+    "k": 4,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0076",
+    "categories": [
+      "avoidance",
+      "hope",
+      "sadness",
+      "approach_coping"
+    ],
+    "k": 4,
+    "split": "val"
+  },
+  {
+    "pattern_id": "pat_0077",
+    "categories": [
+      "approach_coping",
+      "excitement",
+      "overthinking"
+    ],
+    "k": 3,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0078",
+    "categories": [
+      "avoidance",
+      "overthinking",
+      "emotional_dysregulation",
+      "approach_coping"
+    ],
+    "k": 4,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0079",
+    "categories": [
+      "frustration",
+      "shame",
+      "excitement",
+      "withdrawal"
+    ],
+    "k": 4,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0080",
+    "categories": [
+      "excitement",
+      "self_criticism",
+      "emotional_dysregulation"
+    ],
+    "k": 3,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0081",
+    "categories": [
+      "emotional_dysregulation",
+      "self_criticism"
+    ],
+    "k": 2,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0082",
+    "categories": [
+      "self_criticism",
+      "frustration"
+    ],
+    "k": 2,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0083",
+    "categories": [
+      "emotional_dysregulation",
+      "overthinking",
+      "hope",
+      "self_criticism"
+    ],
+    "k": 4,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0084",
+    "categories": [
+      "excitement",
+      "shame"
+    ],
+    "k": 2,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0085",
+    "categories": [
+      "withdrawal",
+      "excitement"
+    ],
+    "k": 2,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0086",
+    "categories": [
+      "anxiety",
+      "reassurance_seeking",
+      "confidence"
+    ],
+    "k": 3,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0087",
+    "categories": [
+      "avoidance",
+      "shame",
+      "emotional_dysregulation",
+      "excitement"
+    ],
+    "k": 4,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0088",
+    "categories": [
+      "withdrawal",
+      "shame",
+      "self_criticism",
+      "fear"
+    ],
+    "k": 4,
+    "split": "test"
+  },
+  {
+    "pattern_id": "pat_0089",
+    "categories": [
+      "overthinking",
+      "shame",
+      "excitement"
+    ],
+    "k": 3,
+    "split": "test"
+  }
+]

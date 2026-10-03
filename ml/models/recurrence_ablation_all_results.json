@@ -1,0 +1,344 @@
+{
+  "device": "cuda",
+  "global_seed": 20260829,
+  "option_b_seed": 20260829,
+  "models": {
+    "v1": {
+      "model": "v1",
+      "checkpoint": "D:\\AI Companion\\Socia\\ml\\models\\checkpoints\\best_model.pt",
+      "checkpoint_epoch": 26,
+      "checkpoint_val_f1": 0.7388392857142857,
+      "test_metrics": {
+        "threshold": 0.4,
+        "roc_auc": 0.675222,
+        "pr_auc": 0.6146818906026787,
+        "accuracy": 0.636,
+        "precision": 0.5825242718446602,
+        "recall": 0.96,
+        "f1": 0.7250755287009063,
+        "tn": 312,
+        "fp": 688,
+        "fn": 40,
+        "tp": 960
+      },
+      "best_test_f1_diagnostic": {
+        "threshold": 0.16299999999999987,
+        "f1": 0.728208900331004,
+        "precision": 0.5759162303664922,
+        "recall": 0.99
+      }
+    },
+    "v2": {
+      "model": "v2",
+      "checkpoint": "D:\\AI Companion\\Socia\\ml\\models\\checkpoints\\best_model_v2.pt",
+      "checkpoint_epoch": 25,
+      "checkpoint_val_f1": 0.7380330722367275,
+      "official_threshold": 0.25,
+      "test_samples": 2000,
+      "original": {
+        "metrics": {
+          "threshold": 0.25,
+          "roc_auc": 0.74695,
+          "pr_auc": 0.7012936157390757,
+          "accuracy": 0.6815,
+          "precision": 0.6345441067457376,
+          "recall": 0.856,
+          "f1": 0.7288207747977863,
+          "tn": 507,
+          "fp": 493,
+          "fn": 144,
+          "tp": 856
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.2569999999999998,
+          "f1": 0.7325881341358556,
+          "precision": 0.6425339366515838,
+          "recall": 0.852
+        }
+      },
+      "option_a": {
+        "metrics": {
+          "threshold": 0.25,
+          "roc_auc": 0.40121799999999996,
+          "pr_auc": 0.410526218301961,
+          "accuracy": 0.5,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tn": 1000,
+          "fp": 0,
+          "fn": 1000,
+          "tp": 0
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.01,
+          "f1": 0.6666666666666666,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "probability_delta": {
+          "mean_delta": -0.35825869488250467,
+          "median_delta": -0.36629932560026646,
+          "std_delta": 0.21348322689501065,
+          "mean_abs_delta": 0.35825869488250467,
+          "expected_direction_rate": 1.0
+        }
+      },
+      "option_b": {
+        "metrics": {
+          "threshold": 0.25,
+          "roc_auc": 0.488238,
+          "pr_auc": 0.5002537771153481,
+          "accuracy": 0.4865,
+          "precision": 0.49142857142857144,
+          "recall": 0.774,
+          "f1": 0.6011650485436894,
+          "tn": 199,
+          "fp": 801,
+          "fn": 226,
+          "tp": 774
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.03299999999999998,
+          "f1": 0.66711140760507,
+          "precision": 0.5005005005005005,
+          "recall": 1.0
+        },
+        "probability_delta": {
+          "mean_delta": 0.09469731565471738,
+          "median_delta": 0.09848213195800781,
+          "std_delta": 0.2877656777165376,
+          "mean_abs_delta": 0.247056642790325,
+          "expected_direction_rate": 0.3515
+        }
+      }
+    },
+    "v3a": {
+      "model": "v3a",
+      "checkpoint": "D:\\AI Companion\\Socia\\ml\\models\\checkpoints\\best_model_v3a.pt",
+      "checkpoint_epoch": 33,
+      "checkpoint_val_f1": 0.7576301615798923,
+      "official_threshold": 0.45,
+      "test_samples": 2000,
+      "original": {
+        "metrics": {
+          "threshold": 0.45,
+          "roc_auc": 0.773793,
+          "pr_auc": 0.7216498123889402,
+          "accuracy": 0.713,
+          "precision": 0.6881625441696113,
+          "recall": 0.779,
+          "f1": 0.7307692307692307,
+          "tn": 647,
+          "fp": 353,
+          "fn": 221,
+          "tp": 779
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.32899999999999974,
+          "f1": 0.751628664495114,
+          "precision": 0.6339285714285714,
+          "recall": 0.923
+        }
+      },
+      "option_a": {
+        "metrics": {
+          "threshold": 0.45,
+          "roc_auc": 0.6519630000000001,
+          "pr_auc": 0.5971645589641972,
+          "accuracy": 0.5,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tn": 1000,
+          "fp": 0,
+          "fn": 1000,
+          "tp": 0
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.01,
+          "f1": 0.6996291718170581,
+          "precision": 0.5949544498948843,
+          "recall": 0.849
+        },
+        "probability_delta": {
+          "mean_delta": -0.4555516487641726,
+          "median_delta": -0.47637465177103877,
+          "std_delta": 0.24634927697991735,
+          "mean_abs_delta": 0.4555532109963242,
+          "expected_direction_rate": 0.9975
+        }
+      },
+      "option_b": {
+        "metrics": {
+          "threshold": 0.45,
+          "roc_auc": 0.514159,
+          "pr_auc": 0.4992334026855443,
+          "accuracy": 0.5195,
+          "precision": 0.5139186295503212,
+          "recall": 0.72,
+          "f1": 0.599750104123282,
+          "tn": 319,
+          "fp": 681,
+          "fn": 280,
+          "tp": 720
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.08099999999999993,
+          "f1": 0.6736699423924094,
+          "precision": 0.5094823167606356,
+          "recall": 0.994
+        },
+        "probability_delta": {
+          "mean_delta": 0.11580118514993228,
+          "median_delta": 0.08460089564323425,
+          "std_delta": 0.3208207031629762,
+          "mean_abs_delta": 0.26417904579662715,
+          "expected_direction_rate": 0.36
+        }
+      }
+    },
+    "v3c": {
+      "model": "v3c",
+      "checkpoint": "D:\\AI Companion\\Socia\\ml\\models\\checkpoints\\best_model_v3c.pt",
+      "checkpoint_epoch": 29,
+      "checkpoint_val_f1": 0.7686408180656157,
+      "official_threshold": 0.4,
+      "test_samples": 2000,
+      "original": {
+        "metrics": {
+          "threshold": 0.4,
+          "roc_auc": 0.769755,
+          "pr_auc": 0.7157259031886929,
+          "accuracy": 0.7015,
+          "precision": 0.6592885375494071,
+          "recall": 0.834,
+          "f1": 0.7364238410596027,
+          "tn": 569,
+          "fp": 431,
+          "fn": 166,
+          "tp": 834
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.33399999999999974,
+          "f1": 0.7472164948453608,
+          "precision": 0.6357894736842106,
+          "recall": 0.906
+        }
+      },
+      "option_a": {
+        "metrics": {
+          "threshold": 0.4,
+          "roc_auc": 0.6526209999999999,
+          "pr_auc": 0.5952366633525961,
+          "accuracy": 0.5,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tn": 1000,
+          "fp": 0,
+          "fn": 1000,
+          "tp": 0
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.011,
+          "f1": 0.7293318233295584,
+          "precision": 0.5858095815645846,
+          "recall": 0.966
+        },
+        "probability_delta": {
+          "mean_delta": -0.408838932845043,
+          "median_delta": -0.4237632639706135,
+          "std_delta": 0.2342291590549092,
+          "mean_abs_delta": 0.4088504190999083,
+          "expected_direction_rate": 0.9875
+        }
+      },
+      "option_b": {
+        "metrics": {
+          "threshold": 0.4,
+          "roc_auc": 0.550778,
+          "pr_auc": 0.5363461652995615,
+          "accuracy": 0.5425,
+          "precision": 0.5311812179016875,
+          "recall": 0.724,
+          "f1": 0.6127803639441388,
+          "tn": 361,
+          "fp": 639,
+          "fn": 276,
+          "tp": 724
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.19899999999999984,
+          "f1": 0.6860505365178262,
+          "precision": 0.5246161990471149,
+          "recall": 0.991
+        },
+        "probability_delta": {
+          "mean_delta": 0.06868833880196326,
+          "median_delta": 0.055500566959381104,
+          "std_delta": 0.29756852913278425,
+          "mean_abs_delta": 0.23962043421412818,
+          "expected_direction_rate": 0.397
+        }
+      }
+    },
+    "v3a_bucketed": {
+      "model": "v3a_bucketed",
+      "checkpoint": "D:\\AI Companion\\Socia\\ml\\models\\checkpoints\\best_model_v3a_bucketed_recurrence.pt",
+      "checkpoint_epoch": 34,
+      "checkpoint_val_f1": 0.7716324710080286,
+      "official_threshold": 0.45,
+      "test_samples": 2000,
+      "original": {
+        "metrics": {
+          "threshold": 0.45,
+          "roc_auc": 0.7755949999999999,
+          "pr_auc": 0.7298767370467621,
+          "accuracy": 0.701,
+          "precision": 0.6769366197183099,
+          "recall": 0.769,
+          "f1": 0.7200374531835206,
+          "tn": 633,
+          "fp": 367,
+          "fn": 231,
+          "tp": 769
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.28999999999999976,
+          "f1": 0.7545304777594728,
+          "precision": 0.6414565826330533,
+          "recall": 0.916
+        }
+      },
+      "option_b": {
+        "metrics": {
+          "threshold": 0.45,
+          "roc_auc": 0.627783,
+          "pr_auc": 0.5947682714274034,
+          "accuracy": 0.6005,
+          "precision": 0.585531914893617,
+          "recall": 0.688,
+          "f1": 0.6326436781609195,
+          "tn": 513,
+          "fp": 487,
+          "fn": 312,
+          "tp": 688
+        },
+        "best_test_f1_diagnostic": {
+          "threshold": 0.042999999999999976,
+          "f1": 0.6881720430107527,
+          "precision": 0.5268189060010622,
+          "recall": 0.992
+        },
+        "probability_delta": {
+          "mean_delta": 0.021442455028533005,
+          "median_delta": 0.015330545604228973,
+          "std_delta": 0.30153322131161864,
+          "mean_abs_delta": 0.2338585813277168,
+          "expected_direction_rate": 0.4435
+        }
+      }
+    }
+  }
+}

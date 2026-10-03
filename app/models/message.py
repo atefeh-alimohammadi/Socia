@@ -26,17 +26,20 @@ class Message(Base):
 
     conversation_emotions = relationship(
         "ConversationEmotion",
-        back_populates="message"
+        back_populates="message",
+        cascade="all, delete-orphan"
     )
 
     behavior_observations = relationship(
         "BehaviorObservation",
-        back_populates="message"
+        back_populates="message",
+        cascade="all, delete-orphan"
     )
 
     episodic_memories = relationship(
         "EpisodicMemory",
-        back_populates="message"
+        back_populates="message",
+        cascade="all, delete-orphan"
     )
 
     feedback = relationship(

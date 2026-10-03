@@ -1,0 +1,233 @@
+[
+  {
+    "model": "baseline_timing_category",
+    "subtype": "positive",
+    "n": 1000,
+    "mean_pred_prob": 0.6355844927337807,
+    "median_pred_prob": 0.7011389222787138,
+    "pct_classified_positive_at_threshold": 0.899,
+    "threshold_used": 0.36,
+    "true_positive_count": 899,
+    "recall_within_positive": 0.899
+  },
+  {
+    "model": "baseline_timing_category",
+    "subtype": "timing_matched",
+    "n": 220,
+    "mean_pred_prob": 0.277441641261679,
+    "median_pred_prob": 0.23232773934235385,
+    "pct_classified_positive_at_threshold": 0.35454545454545455,
+    "threshold_used": 0.36,
+    "false_positive_count": 78,
+    "false_positive_rate": 0.35454545454545455
+  },
+  {
+    "model": "baseline_timing_category",
+    "subtype": "order_permutation",
+    "n": 200,
+    "mean_pred_prob": 0.6302614882303811,
+    "median_pred_prob": 0.6768727510154546,
+    "pct_classified_positive_at_threshold": 0.915,
+    "threshold_used": 0.36,
+    "false_positive_count": 183,
+    "false_positive_rate": 0.915
+  },
+  {
+    "model": "baseline_timing_category",
+    "subtype": "boundary_single_occurrence",
+    "n": 200,
+    "mean_pred_prob": 0.07555042435956094,
+    "median_pred_prob": 0.0035774730248761444,
+    "pct_classified_positive_at_threshold": 0.085,
+    "threshold_used": 0.36,
+    "false_positive_count": 17,
+    "false_positive_rate": 0.085
+  },
+  {
+    "model": "baseline_timing_category",
+    "subtype": "category_identity",
+    "n": 160,
+    "mean_pred_prob": 0.4799490277697136,
+    "median_pred_prob": 0.512295532729315,
+    "pct_classified_positive_at_threshold": 0.7,
+    "threshold_used": 0.36,
+    "false_positive_count": 112,
+    "false_positive_rate": 0.7
+  },
+  {
+    "model": "baseline_timing_category",
+    "subtype": "boundary_tight_burst",
+    "n": 120,
+    "mean_pred_prob": 0.1439188941643833,
+    "median_pred_prob": 0.012880882730865618,
+    "pct_classified_positive_at_threshold": 0.20833333333333334,
+    "threshold_used": 0.36,
+    "false_positive_count": 25,
+    "false_positive_rate": 0.20833333333333334
+  },
+  {
+    "model": "baseline_timing_category",
+    "subtype": "pure_background",
+    "n": 100,
+    "mean_pred_prob": 0.3359579397488217,
+    "median_pred_prob": 0.33876019040950467,
+    "pct_classified_positive_at_threshold": 0.45,
+    "threshold_used": 0.36,
+    "false_positive_count": 45,
+    "false_positive_rate": 0.45
+  },
+  {
+    "model": "v3a",
+    "subtype": "positive",
+    "n": 1000,
+    "mean_pred_prob": 0.5947642315234989,
+    "median_pred_prob": 0.6022152304649353,
+    "pct_classified_positive_at_threshold": 0.779,
+    "threshold_used": 0.45,
+    "true_positive_count": 779,
+    "recall_within_positive": 0.779
+  },
+  {
+    "model": "v3a",
+    "subtype": "timing_matched",
+    "n": 220,
+    "mean_pred_prob": 0.40826261868192393,
+    "median_pred_prob": 0.3915082514286041,
+    "pct_classified_positive_at_threshold": 0.35454545454545455,
+    "threshold_used": 0.45,
+    "false_positive_count": 78,
+    "false_positive_rate": 0.35454545454545455
+  },
+  {
+    "model": "v3a",
+    "subtype": "order_permutation",
+    "n": 200,
+    "mean_pred_prob": 0.6031278696283698,
+    "median_pred_prob": 0.6107473075389862,
+    "pct_classified_positive_at_threshold": 0.785,
+    "threshold_used": 0.45,
+    "false_positive_count": 157,
+    "false_positive_rate": 0.785
+  },
+  {
+    "model": "v3a",
+    "subtype": "boundary_single_occurrence",
+    "n": 200,
+    "mean_pred_prob": 0.07299079961841926,
+    "median_pred_prob": 0.020332724787294865,
+    "pct_classified_positive_at_threshold": 0.025,
+    "threshold_used": 0.45,
+    "false_positive_count": 5,
+    "false_positive_rate": 0.025
+  },
+  {
+    "model": "v3a",
+    "subtype": "category_identity",
+    "n": 160,
+    "mean_pred_prob": 0.46051735687069595,
+    "median_pred_prob": 0.4481762498617172,
+    "pct_classified_positive_at_threshold": 0.5,
+    "threshold_used": 0.45,
+    "false_positive_count": 80,
+    "false_positive_rate": 0.5
+  },
+  {
+    "model": "v3a",
+    "subtype": "boundary_tight_burst",
+    "n": 120,
+    "mean_pred_prob": 0.12744352580436194,
+    "median_pred_prob": 0.042761292308568954,
+    "pct_classified_positive_at_threshold": 0.09166666666666666,
+    "threshold_used": 0.45,
+    "false_positive_count": 11,
+    "false_positive_rate": 0.09166666666666666
+  },
+  {
+    "model": "v3a",
+    "subtype": "pure_background",
+    "n": 100,
+    "mean_pred_prob": 0.37309535428881646,
+    "median_pred_prob": 0.34715522825717926,
+    "pct_classified_positive_at_threshold": 0.22,
+    "threshold_used": 0.45,
+    "false_positive_count": 22,
+    "false_positive_rate": 0.22
+  },
+  {
+    "model": "v3c",
+    "subtype": "positive",
+    "n": 1000,
+    "mean_pred_prob": 0.5953103808416054,
+    "median_pred_prob": 0.6318066418170929,
+    "pct_classified_positive_at_threshold": 0.834,
+    "threshold_used": 0.4,
+    "true_positive_count": 834,
+    "recall_within_positive": 0.834
+  },
+  {
+    "model": "v3c",
+    "subtype": "timing_matched",
+    "n": 220,
+    "mean_pred_prob": 0.40447312715378675,
+    "median_pred_prob": 0.37342312932014465,
+    "pct_classified_positive_at_threshold": 0.4409090909090909,
+    "threshold_used": 0.4,
+    "false_positive_count": 97,
+    "false_positive_rate": 0.4409090909090909
+  },
+  {
+    "model": "v3c",
+    "subtype": "order_permutation",
+    "n": 200,
+    "mean_pred_prob": 0.60013263694942,
+    "median_pred_prob": 0.6307536661624908,
+    "pct_classified_positive_at_threshold": 0.84,
+    "threshold_used": 0.4,
+    "false_positive_count": 168,
+    "false_positive_rate": 0.84
+  },
+  {
+    "model": "v3c",
+    "subtype": "boundary_single_occurrence",
+    "n": 200,
+    "mean_pred_prob": 0.07710154916276224,
+    "median_pred_prob": 0.01684390753507614,
+    "pct_classified_positive_at_threshold": 0.05,
+    "threshold_used": 0.4,
+    "false_positive_count": 10,
+    "false_positive_rate": 0.05
+  },
+  {
+    "model": "v3c",
+    "subtype": "category_identity",
+    "n": 160,
+    "mean_pred_prob": 0.4711216612718999,
+    "median_pred_prob": 0.4537707716226578,
+    "pct_classified_positive_at_threshold": 0.63125,
+    "threshold_used": 0.4,
+    "false_positive_count": 101,
+    "false_positive_rate": 0.63125
+  },
+  {
+    "model": "v3c",
+    "subtype": "boundary_tight_burst",
+    "n": 120,
+    "mean_pred_prob": 0.14806684176631582,
+    "median_pred_prob": 0.043000755831599236,
+    "pct_classified_positive_at_threshold": 0.14166666666666666,
+    "threshold_used": 0.4,
+    "false_positive_count": 17,
+    "false_positive_rate": 0.14166666666666666
+  },
+  {
+    "model": "v3c",
+    "subtype": "pure_background",
+    "n": 100,
+    "mean_pred_prob": 0.3880543714761734,
+    "median_pred_prob": 0.3444799482822418,
+    "pct_classified_positive_at_threshold": 0.38,
+    "threshold_used": 0.4,
+    "false_positive_count": 38,
+    "false_positive_rate": 0.38
+  }
+]

@@ -1,0 +1,67 @@
+{
+  "sequence_length": 25,
+  "base_seed": 20260925,
+  "pattern_pool_disjointness": {
+    "sizes": {
+      "train": 63,
+      "val": 14,
+      "test": 13
+    },
+    "tuple_overlaps": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "categoryset_relations": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "all_clear": true
+  },
+  "target_total_per_split": {
+    "train": 12000,
+    "val": 2000,
+    "test": 2000
+  },
+  "subtype_plan_per_split": {
+    "train": {
+      "positive": 6000,
+      "timing_matched": 1320,
+      "category_identity": 960,
+      "order_permutation": 1200,
+      "boundary_single_occurrence": 1200,
+      "boundary_tight_burst": 720,
+      "pure_background": 600
+    },
+    "val": {
+      "positive": 1000,
+      "timing_matched": 220,
+      "category_identity": 160,
+      "order_permutation": 200,
+      "boundary_single_occurrence": 200,
+      "boundary_tight_burst": 120,
+      "pure_background": 100
+    },
+    "test": {
+      "positive": 1000,
+      "timing_matched": 220,
+      "category_identity": 160,
+      "order_permutation": 200,
+      "boundary_single_occurrence": 200,
+      "boundary_tight_burst": 120,
+      "pure_background": 100
+    }
+  },
+  "user_overlap_across_splits": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  },
+  "n_users_per_split": {
+    "train": 5984,
+    "val": 990,
+    "test": 1013
+  },
+  "n_counterfactual_rows": 1200
+}

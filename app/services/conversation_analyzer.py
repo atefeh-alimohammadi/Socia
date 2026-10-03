@@ -1,7 +1,6 @@
+
 import json
 import logging
-
-from sqlalchemy.orm import Session
 
 from app.ai.ollama import generate_ai_response
 from app.database.database import SessionLocal
@@ -219,7 +218,6 @@ def analyze_conversation_message(
             []
         )
 
-
         extracted_memories = []
 
         for item in emotions:
@@ -244,7 +242,6 @@ def analyze_conversation_message(
                 "evidence"
             )
 
-
             if emotion_name not in VALID_EMOTIONS:
                 continue
 
@@ -260,20 +257,19 @@ def analyze_conversation_message(
             if not emotion_evidence:
                 continue
 
-
             if (
-                    isinstance(valence, bool)
-                    or not isinstance(valence, (int, float))
-                    or valence < -1
-                    or valence > 1
+                isinstance(valence, bool)
+                or not isinstance(valence, (int, float))
+                or valence < -1
+                or valence > 1
             ):
                 valence = None
 
             if (
-                    isinstance(arousal, bool)
-                    or not isinstance(arousal, (int, float))
-                    or arousal < 0
-                    or arousal > 1
+                isinstance(arousal, bool)
+                or not isinstance(arousal, (int, float))
+                or arousal < 0
+                or arousal > 1
             ):
                 arousal = None
 
@@ -306,6 +302,7 @@ def analyze_conversation_message(
                 )
             )
 
+        new_behavior_observations = 0
 
         for item in observations:
 
@@ -349,6 +346,8 @@ def analyze_conversation_message(
                 observation
             )
 
+            new_behavior_observations += 1
+
             memory = create_episodic_memory(
                 db,
                 user_id=user_id,
@@ -367,9 +366,7 @@ def analyze_conversation_message(
                 )
             )
 
-
         db.flush()
-
 
         for item in entities:
 
@@ -422,7 +419,6 @@ def analyze_conversation_message(
                 db.add(entity)
                 db.flush()
 
-
             for memory, tag in extracted_memories:
 
                 edge = KnowledgeEdge(
@@ -436,20 +432,7 @@ def analyze_conversation_message(
 
         db.commit()
 
-
-        total_observations = (
-            db.query(BehaviorObservation)
-            .filter(
-                BehaviorObservation.user_id == user_id
-            )
-            .count()
-        )
-
-        if (
-            total_observations > 0
-            and total_observations % 3 == 0
-        ):
-
+        if new_behavior_observations > 0:
             synthesize_patterns_from_observations(
                 user_id
             )
@@ -467,3 +450,4 @@ def analyze_conversation_message(
     finally:
 
         db.close()
+

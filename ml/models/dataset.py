@@ -14,7 +14,10 @@ EXPECTED_WINDOW_LENGTH = 25
 NUM_CATEGORIES = 15
 
 DEFAULT_DATA_DIR = (
-    Path(__file__).resolve().parent.parent / "data"
+    Path(__file__).resolve().parent.parent
+    / "dataset"
+    / "scripts"
+    / "data"
 )
 
 

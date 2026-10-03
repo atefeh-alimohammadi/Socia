@@ -1,0 +1,104 @@
+{
+  "baseline_timing_category": {
+    "threshold_used": 0.36,
+    "total_n": 2000,
+    "total_fp": 460,
+    "total_fn": 101,
+    "fp_rate_overall": 0.46,
+    "fn_rate_overall": 0.101,
+    "fp_count_by_negative_subtype": {
+      "order_permutation": 183,
+      "category_identity": 112,
+      "timing_matched": 78,
+      "pure_background": 45,
+      "boundary_tight_burst": 25,
+      "boundary_single_occurrence": 17
+    },
+    "fp_share_of_all_fps_by_negative_subtype": {
+      "order_permutation": 0.3978,
+      "category_identity": 0.2435,
+      "timing_matched": 0.1696,
+      "pure_background": 0.0978,
+      "boundary_tight_burst": 0.0543,
+      "boundary_single_occurrence": 0.037
+    },
+    "fn_count_by_n_occ_intended": {
+      "2": 77,
+      "3": 18,
+      "4": 6
+    },
+    "fn_share_of_all_fns_by_n_occ_intended": {
+      "2": 0.7624,
+      "3": 0.1782,
+      "4": 0.0594
+    }
+  },
+  "v3a": {
+    "threshold_used": 0.45,
+    "total_n": 2000,
+    "total_fp": 353,
+    "total_fn": 221,
+    "fp_rate_overall": 0.353,
+    "fn_rate_overall": 0.221,
+    "fp_count_by_negative_subtype": {
+      "order_permutation": 157,
+      "category_identity": 80,
+      "timing_matched": 78,
+      "pure_background": 22,
+      "boundary_tight_burst": 11,
+      "boundary_single_occurrence": 5
+    },
+    "fp_share_of_all_fps_by_negative_subtype": {
+      "order_permutation": 0.4448,
+      "category_identity": 0.2266,
+      "timing_matched": 0.221,
+      "pure_background": 0.0623,
+      "boundary_tight_burst": 0.0312,
+      "boundary_single_occurrence": 0.0142
+    },
+    "fn_count_by_n_occ_intended": {
+      "2": 149,
+      "3": 62,
+      "4": 10
+    },
+    "fn_share_of_all_fns_by_n_occ_intended": {
+      "2": 0.6742,
+      "3": 0.2805,
+      "4": 0.0452
+    }
+  },
+  "v3c": {
+    "threshold_used": 0.4,
+    "total_n": 2000,
+    "total_fp": 431,
+    "total_fn": 166,
+    "fp_rate_overall": 0.431,
+    "fn_rate_overall": 0.166,
+    "fp_count_by_negative_subtype": {
+      "order_permutation": 168,
+      "category_identity": 101,
+      "timing_matched": 97,
+      "pure_background": 38,
+      "boundary_tight_burst": 17,
+      "boundary_single_occurrence": 10
+    },
+    "fp_share_of_all_fps_by_negative_subtype": {
+      "order_permutation": 0.3898,
+      "category_identity": 0.2343,
+      "timing_matched": 0.2251,
+      "pure_background": 0.0882,
+      "boundary_tight_burst": 0.0394,
+      "boundary_single_occurrence": 0.0232
+    },
+    "fn_count_by_n_occ_intended": {
+      "2": 119,
+      "3": 39,
+      "4": 8
+    },
+    "fn_share_of_all_fns_by_n_occ_intended": {
+      "2": 0.7169,
+      "3": 0.2349,
+      "4": 0.0482
+    }
+  }
+}

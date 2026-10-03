@@ -73,29 +73,38 @@ def _create_journey_with_first_challenge(
         source_memory_id=source_memory_id,
     )
 
-    db.add(journey)
-    db.commit()
-    db.refresh(journey)
+    try:
+        db.add(journey)
 
-    first_challenge = generate_next_challenge(
-        title=title,
-        description=description,
-        user_context=formatted_context,
-        day_number=1,
-        previous_challenge=None,
-    )
+        # Send the INSERT to the database so journey.id is available,
+        # but do not commit yet.
+        db.flush()
 
-    db_challenge = JourneyChallenge(
-        journey_id=journey.id,
-        day_number=1,
-        title=first_challenge["title"],
-        description=first_challenge["description"],
-        status="pending",
-    )
+        first_challenge = generate_next_challenge(
+            title=title,
+            description=description,
+            user_context=formatted_context,
+            day_number=1,
+            previous_challenge=None,
+        )
 
-    db.add(db_challenge)
-    db.commit()
-    db.refresh(journey)
+        db_challenge = JourneyChallenge(
+            journey_id=journey.id,
+            day_number=1,
+            title=first_challenge["title"],
+            description=first_challenge["description"],
+            status="pending",
+        )
+
+        db.add(db_challenge)
+
+        # Journey and its first challenge are committed together.
+        db.commit()
+        db.refresh(journey)
+
+    except Exception:
+        db.rollback()
+        raise
 
     return journey
 
@@ -198,18 +207,16 @@ def _advance_journey_and_generate_next(
     current_user: User,
 ) -> JourneyChallenge | None:
     """
-    Advances day_current and, if the journey isn't finished,
-    generates the next challenge based on the outcome of
-    current_challenge.
+    Generates the next challenge before committing the day transition.
+
+    If challenge generation fails, the transaction is rolled back so
+    the journey does not advance to a day without a challenge.
 
     Returns the newly created challenge, or None if the journey
     is now complete.
     """
 
-    if journey.day_current < journey.day_total:
-        journey.day_current += 1
-
-    else:
+    if journey.day_current >= journey.day_total:
         journey.status = "completed"
 
         db.commit()
@@ -217,34 +224,45 @@ def _advance_journey_and_generate_next(
 
         return None
 
-    db.commit()
+    next_day = journey.day_current + 1
 
-    context = assemble_user_context(
-        current_user.id,
-        db
-    )
+    try:
+        context = assemble_user_context(
+            current_user.id,
+            db
+        )
 
-    formatted_context = format_context_for_prompt(context)
+        formatted_context = format_context_for_prompt(context)
 
-    next_challenge_data = generate_next_challenge(
-        title=journey.title,
-        description=journey.description,
-        user_context=formatted_context,
-        day_number=journey.day_current,
-        previous_challenge=current_challenge,
-    )
+        next_challenge_data = generate_next_challenge(
+            title=journey.title,
+            description=journey.description,
+            user_context=formatted_context,
+            day_number=next_day,
+            previous_challenge=current_challenge,
+        )
 
-    next_challenge = JourneyChallenge(
-        journey_id=journey.id,
-        day_number=journey.day_current,
-        title=next_challenge_data["title"],
-        description=next_challenge_data["description"],
-        status="pending",
-    )
+        next_challenge = JourneyChallenge(
+            journey_id=journey.id,
+            day_number=next_day,
+            title=next_challenge_data["title"],
+            description=next_challenge_data["description"],
+            status="pending",
+        )
 
-    db.add(next_challenge)
-    db.commit()
-    db.refresh(journey)
+        # Update the current day only after the next challenge
+        # has been successfully generated.
+        journey.day_current = next_day
+
+        db.add(next_challenge)
+
+        # Commit the day transition and the new challenge together.
+        db.commit()
+        db.refresh(journey)
+
+    except Exception:
+        db.rollback()
+        raise
 
     return next_challenge
 
@@ -277,6 +295,12 @@ def complete_challenge(
             detail="Journey not found",
         )
 
+    if journey.status != "active":
+        raise HTTPException(
+            status_code=400,
+            detail="Journey is not active",
+        )
+
     current_challenge = (
         db.query(JourneyChallenge)
         .filter(
@@ -286,17 +310,26 @@ def complete_challenge(
         .first()
     )
 
-    if current_challenge:
-        current_challenge.status = "completed"
-        current_challenge.completed_at = datetime.now(timezone.utc)
-        current_challenge.difficulty_feedback = (
-            feedback.difficulty_feedback
-        )
-        current_challenge.emotional_response = (
-            feedback.emotional_response
+    if not current_challenge:
+        raise HTTPException(
+            status_code=404,
+            detail="Current challenge not found",
         )
 
-        db.commit()
+    if current_challenge.status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail="Current challenge has already been completed or skipped",
+        )
+
+    current_challenge.status = "completed"
+    current_challenge.completed_at = datetime.now(timezone.utc)
+    current_challenge.difficulty_feedback = (
+        feedback.difficulty_feedback
+    )
+    current_challenge.emotional_response = (
+        feedback.emotional_response
+    )
 
     _advance_journey_and_generate_next(
         db=db,
@@ -457,6 +490,12 @@ def skip_challenge(
             detail="Journey not found",
         )
 
+    if journey.status != "active":
+        raise HTTPException(
+            status_code=400,
+            detail="Journey is not active",
+        )
+
     current_challenge = (
         db.query(JourneyChallenge)
         .filter(
@@ -466,14 +505,23 @@ def skip_challenge(
         .first()
     )
 
-    if current_challenge:
-        current_challenge.status = "skipped"
-        current_challenge.skip_reason = skip_data.skip_reason
-        current_challenge.skip_reason_detail = (
-            skip_data.skip_reason_detail
+    if not current_challenge:
+        raise HTTPException(
+            status_code=404,
+            detail="Current challenge not found",
         )
 
-        db.commit()
+    if current_challenge.status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail="Current challenge has already been completed or skipped",
+        )
+
+    current_challenge.status = "skipped"
+    current_challenge.skip_reason = skip_data.skip_reason
+    current_challenge.skip_reason_detail = (
+        skip_data.skip_reason_detail
+    )
 
     _advance_journey_and_generate_next(
         db=db,
