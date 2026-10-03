@@ -2,9 +2,60 @@
 
 **A local-LLM companion that remembers, notices recurring communication patterns, and turns the ones you choose into adaptive multi-day Journeys.**
 
-Built for people who find social communication hard. A full-stack system: FastAPI, PostgreSQL + pgvector, Next.js, and a self-hosted Qwen2.5-7B.
+## Why Socia?
 
-> **Status: working prototype (v0.1). Not a clinical or therapeutic tool.** Pattern detection today is *LLM signal extraction + a deterministic counting rule*, and its accuracy has not been measured. The ML detector in `ml/` is a separate research module, under validation and **not** part of the running product. Details: [`docs/status.md`](docs/status.md).
+Social interaction is a part of everyday life, but it is not equally easy for everyone. Some people struggle with social anxiety, low confidence, overthinking, fear of judgment, difficulty expressing themselves, conflict avoidance, or simply not knowing how to handle certain social situations. These difficulties can show up repeatedly in everyday conversations, relationships, presentations, work, or other social situations.
+
+There are already products that address parts of this problem, but they often take different approaches. Some are closer to **structured or clinically oriented mental-wellbeing tools**, such as Wysa, which provides guided self-help and clinically backed support. Others are designed primarily as **AI companions**, such as Replika, where the emphasis is on ongoing conversation and companionship. These approaches serve different purposes, but they leave an interesting space between them: a conversational companion that can provide support and guidance while also paying attention to recurring patterns in the user's own interactions and helping them practice concrete changes over time.
+
+**Socia was built to explore that space.**
+
+The idea is not to make an AI that diagnoses a user or decides what is wrong with them. Instead, Socia combines the conversational and supportive aspects of an AI companion with a longitudinal memory and practice loop:
+
+**listen → remember → notice → let the user choose → practice → adapt**
+
+The system observes signals from conversations, keeps relevant moments as memory, and can surface repeated behavioral signals as candidate patterns. If the user considers a pattern meaningful, they can choose to work on it through a multi-day Journey. The Journey then turns the selected pattern into small, concrete challenges and adapts the next challenge based on the user's feedback.
+
+### From conversation to practice
+
+A typical Socia interaction works roughly like this:
+
+1. **Conversation** — The user talks to the companion about whatever is happening in their life.
+2. **Signal extraction** — The conversation is analyzed for structured signals such as emotions, behavior observations, and entities.
+3. **Memory** — Relevant observations are stored as episodic memories and can later be retrieved when they are useful.
+4. **Pattern synthesis** — Repeated observations can be promoted into a synthesized behavioral pattern. In the current prototype, this is a deterministic counting rule rather than a trained behavioral detector.
+5. **User choice** — A detected pattern is not treated as a fact about the user or something they must work on. The user decides whether to start a Journey from it.
+6. **Journey** — The selected pattern becomes the focus of a multi-day process with small challenges.
+7. **Feedback and adaptation** — The user can rate a challenge, explain how it felt, or skip it and provide a reason. The next challenge is generated using that feedback.
+
+In other words, Socia is designed to move beyond **"talk to an AI"** toward **"talk, build continuity, notice possible patterns, and practice what you choose to change."**
+
+## How the behavioral detection evolves
+
+The current production prototype uses a simple approach:
+
+**Conversation history → LLM signal extraction → deterministic counting rule → synthesized pattern**
+
+This keeps the current product implementation understandable and testable, but it is also intentionally limited. A pattern is currently promoted when the same behavior observation reaches the application's threshold of three observations. There is no temporal recurrence model, decay, or learned detector, and detection quality has not yet been measured.
+
+The `ml/` research module explores a future version of this component:
+
+**Conversation history → structured temporal events → ML recurrence detector → pattern/evidence layer → user-controlled Journey**
+
+The research question is whether recurring behavioral patterns can be learned from the **temporal structure of signals extracted from conversation history**, rather than identifying recurrence only through a fixed observation count.
+
+This research module is currently evaluated on a controlled synthetic longitudinal benchmark. It is separate from the running Production system and is not presented as a validated detector of real-world human behavior.
+
+## What Socia is
+
+Socia is therefore both:
+
+* a **working full-stack AI companion prototype**, exploring persistent memory, personalization, adaptive interaction, and user-controlled behavioral reflection; and
+* a **research project**, investigating temporal modeling of recurring patterns as a possible future replacement or augmentation of the current deterministic pattern-promotion mechanism.
+
+The production system and research module are intentionally separated so that experimental ML results do not become implicit claims about what the current product can reliably detect.
+
+> **Status: working prototype (v0.1). Not a clinical or therapeutic tool.** Production pattern detection currently uses LLM signal extraction followed by a deterministic counting rule, and its detection quality has not been measured. The ML module in `ml/` is a separate research module and is **not part of the running product**.
 
 ## What Socia does
 
