@@ -47,7 +47,6 @@ Each chat turn: **safety check → routing → memory retrieval → reply → co
 * **Adaptation inside the loop, not a fixed plan.** Challenges are generated one at a time from the previous outcome, using bounded feedback (difficulty, skip reason) plus free text. *Trade-off: it only looks one step back.*
 * **Local inference.** LLM and embedding inference run locally through Ollama rather than through a hosted model API. *Trade-off: a 7B model is less reliable at structured output, which is why the validation above exists.*
 
-The reasoning behind these is written up as short [decision records](docs/decisions/).
 
 ## Pattern detection roadmap
 
@@ -64,14 +63,14 @@ Once the research model is sufficiently validated, the intended architecture is 
 
 * Detection quality is unmeasured, and "recurring" means a count of 3 with no time window.
 * There is currently no user-facing way to dismiss or correct a detected pattern.
-* The current self-harm safety mechanism is a keyword-based check applied to chat messages; it is not a comprehensive safety classifier. There is currently no in-app safety disclaimer ([`SAFETY.md`](SAFETY.md)).
+* The current self-harm safety mechanism is a keyword-based check applied to chat messages; it is not a comprehensive safety classifier. There is currently no in-app safety disclaimer ([`SAFETY.md`](docs/SAFETY.md)).
 * Background analysis runs in-process with no retry.
 
 The full implemented / partial / missing matrix and known issues are in [`docs/status.md`](docs/status.md).
 
 ## Research module (separate)
 
-`ml/` studies whether a model can detect *recurrent* behavioral patterns rather than timing shortcuts, using a synthetic benchmark. It is under validation, reports no results here, and will be integrated only after passing defined gates. See [`docs/research/`](docs/research/README.md).
+`ml/` studies whether a model can detect *recurrent* behavioral patterns rather than timing shortcuts, using a synthetic benchmark. It is under validation, reports, and will be integrated only after passing defined gates. See [`ml/`](ml/README.md).
 
 ## Tech stack
 
@@ -91,8 +90,6 @@ Complete setup, environment variables and a demo script: [`docs/development.md`]
 
 ## Go deeper
 
-[Architecture](docs/architecture.md) · [Memory & patterns](docs/memory-and-patterns.md) · [Journeys](docs/journeys.md) · [Safety](SAFETY.md) · [Concepts](docs/concepts.md) · [Status](docs/status.md) · [Research](docs/research/README.md)
+[Architecture](docs/architecture.md) · [Memory & patterns](docs/memory-and-patterns.md) · [Journeys](docs/journeys.md) · [Safety](docs/SAFETY.md) · [Concepts](docs/concepts.md) · [Status](docs/status.md) · [ML(Research)](ml/README.md)
 
-## License
 
-License information will be added before public release.
