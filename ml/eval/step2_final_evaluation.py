@@ -1,330 +1,166 @@
-#!/usr/bin/env python3
 """
-Step 2 — Final evaluation.
+Step 2 — Final evaluation on the frozen V2 benchmark.
 
-Runs ALL inference needed for the rest of the pipeline exactly once:
-val, test, and counterfactual predictions for the baseline, V3-A, and
-V3-C.
+Runs all five final comparison models:
 
-Every later step (3-6) reads only the files this script writes.
-The visualization script (7) reads only the analysis outputs of 3-6.
+1. Timing + category baseline
+2. V2
+3. V3-A
+4. V3-C
+5. V3-A + bucketed recurrence features
 
-Does not retrain, does not modify checkpoints, does not touch V1.
+For every model:
+- evaluate on the same frozen train/val/test benchmark
+- use train-fitted temporal normalization
+- select the operating threshold on validation only
+- evaluate the frozen test set
+- save validation predictions
+- save test predictions
+- run counterfactual inference
+- save counterfactual predictions
 
-Default paths are configured for the current Socia project layout,
-but can be overridden from the command line.
+All later evaluation steps read only the files produced here.
+
+Does not retrain neural models and does not modify checkpoints.
 
 Usage:
-    python step2_final_evaluation.py
-
-Or with explicit paths:
-    python step2_final_evaluation.py \
-        --data-dir /path/to/Socia/ml/dataset/scripts/data \
-        --checkpoints-dir /path/to/Socia/ml/models/checkpoints \
-        --code-dir /path/to/Socia/ml/models \
-        --out-dir /path/to/Socia/ml/eval/eval_outputs
+    python -m ml.eval.step2_final_evaluation
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
-import math
+import json
 from pathlib import Path
 from typing import Dict, List
+from sklearn.metrics import confusion_matrix
+import numpy as np
+import pandas as pd
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 
-import common
+from ml.models.dataset import load_jsonl
+from ml.models.dataset_v2 import build_datasets_v2
 
+from .baseline import (
+    fit_baseline,
+    predict_baseline,
+)
 
-def parse_args():
-    p = argparse.ArgumentParser(description=__doc__)
-
-    p.add_argument(
-        "--data-dir",
-        type=Path,
-        default=Path(
-            r"D:\AI Companion\Socia\ml\dataset\scripts\data"
-        ),
-        help=(
-            "Directory containing train.jsonl, val.jsonl, test.jsonl, "
-            "and counterfactual_eval.jsonl"
-        ),
-    )
-
-    p.add_argument(
-        "--checkpoints-dir",
-        type=Path,
-        default=Path(
-            r"D:\AI Companion\Socia\ml\models\checkpoints"
-        ),
-        help=(
-            "Directory containing best_model_v3a.pt "
-            "and best_model_v3c.pt"
-        ),
-    )
-
-    p.add_argument(
-        "--code-dir",
-        type=Path,
-        default=Path(
-            r"D:\AI Companion\Socia\ml\models"
-        ),
-        help=(
-            "Directory containing the frozen model code"
-        ),
-    )
-
-    p.add_argument(
-        "--out-dir",
-        type=Path,
-        default=Path(
-            r"D:\AI Companion\Socia\ml\eval\eval_outputs"
-        ),
-        help="Directory where Step 2 outputs will be written",
-    )
-
-    return p.parse_args()
+from . import common
 
 
-def fit_time_normalization_v2(
-    records: List[dict],
+# ---------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------
+
+ALL_MODEL_NAMES = [
+    "baseline_timing_category",
+    "v2",
+    "v3a",
+    "v3c",
+    "v3a_bucketed_recurrence",
+]
+
+NEURAL_MODEL_NAMES = [
+    "v2",
+    "v3a",
+    "v3c",
+    "v3a_bucketed_recurrence",
+]
+
+PREDICTION_FILE_NAMES = {
+    "baseline_timing_category": "baseline",
+    "v2": "v2",
+    "v3a": "v3a",
+    "v3c": "v3c",
+    "v3a_bucketed_recurrence": "v3a_bucketed_recurrence",
+}
+
+
+# ---------------------------------------------------------------------
+# Metrics
+# ---------------------------------------------------------------------
+
+
+def compute_binary_metrics(
+    y_true: np.ndarray,
+    probs: np.ndarray,
+    threshold: float,
 ) -> Dict[str, float]:
-    """
-    Reproduce the exact V2 temporal normalization statistics.
 
-    Statistics are computed from TRAIN only.
+    y_true = np.asarray(y_true).astype(int)
+    probs = np.asarray(probs).astype(float)
 
-    Raw temporal quantities:
-        - absolute delta_hours
-        - gap_prev
-        - gap_same_category
+    preds = (probs >= threshold).astype(int)
 
-    Each quantity is transformed with log1p before calculating
-    mean and population standard deviation.
-
-    For gap_prev:
-        The first event of each window is excluded because its
-        gap_prev is deterministically zero.
-
-    For gap_same_category:
-        Only events with a previous occurrence of the same category
-        are included. Placeholder zeros for "no previous occurrence"
-        are excluded.
-    """
-
-    abs_logged: List[float] = []
-    gap_prev_logged: List[float] = []
-    gap_same_cat_logged: List[float] = []
-
-    for record in records:
-        events = record["events"]
-
-        category_ids = [
-            int(e["category_id"])
-            for e in events
-        ]
-
-        raw_hours = [
-            float(e["delta_hours"])
-            for e in events
-        ]
-
-        n = len(events)
-
-        last_seen: Dict[int, float] = {}
-
-        for i in range(n):
-
-            # ------------------------------------------------------
-            # Absolute event time
-            # ------------------------------------------------------
-            abs_logged.append(
-                math.log1p(raw_hours[i])
-            )
-
-            # ------------------------------------------------------
-            # Gap from previous event
-            #
-            # First event has no previous event, so it is excluded.
-            # ------------------------------------------------------
-            if i > 0:
-                gap = (
-                    raw_hours[i]
-                    - raw_hours[i - 1]
-                )
-
-                gap_prev_logged.append(
-                    math.log1p(gap)
-                )
-
-            # ------------------------------------------------------
-            # Gap from previous event of the same category
-            #
-            # Only real same-category gaps are included.
-            # ------------------------------------------------------
-            cat = category_ids[i]
-
-            if cat in last_seen:
-                same_cat_gap = (
-                    raw_hours[i]
-                    - last_seen[cat]
-                )
-
-                gap_same_cat_logged.append(
-                    math.log1p(same_cat_gap)
-                )
-
-            last_seen[cat] = raw_hours[i]
-
-    # ------------------------------------------------------------------
-    # Calculate mean/std exactly from the collected log1p values.
-    #
-    # math.fsum is used for numerically stable summation.
-    # The std here is population std (ddof=0), matching numpy.std()
-    # when called without ddof.
-    # ------------------------------------------------------------------
-
-    def mean_std(values: List[float]):
-        if not values:
-            raise ValueError(
-                "Cannot compute normalization statistics from "
-                "an empty value list."
-            )
-
-        mean = math.fsum(values) / len(values)
-
-        variance = (
-            math.fsum(
-                (x - mean) ** 2
-                for x in values
-            )
-            / len(values)
-        )
-
-        std = math.sqrt(variance)
-
-        return float(mean), float(std)
-
-    abs_mean, abs_std = mean_std(abs_logged)
-    gap_prev_mean, gap_prev_std = mean_std(
-        gap_prev_logged
-    )
-    gap_same_cat_mean, gap_same_cat_std = mean_std(
-        gap_same_cat_logged
-    )
+    # Fixed label order:
+    # [[TN, FP],
+    #  [FN, TP]]
+    tn, fp, fn, tp = confusion_matrix(
+        y_true,
+        preds,
+        labels=[0, 1],
+    ).ravel()
 
     return {
-        "abs_mean": abs_mean,
-        "abs_std": abs_std,
-        "gap_prev_mean": gap_prev_mean,
-        "gap_prev_std": gap_prev_std,
-        "gap_same_cat_mean": gap_same_cat_mean,
-        "gap_same_cat_std": gap_same_cat_std,
+        "roc_auc": float(
+            roc_auc_score(y_true, probs)
+        ),
+        "pr_auc": float(
+            average_precision_score(y_true, probs)
+        ),
+        "f1": float(
+            f1_score(
+                y_true,
+                preds,
+                zero_division=0,
+            )
+        ),
+        "precision": float(
+            precision_score(
+                y_true,
+                preds,
+                zero_division=0,
+            )
+        ),
+        "recall": float(
+            recall_score(
+                y_true,
+                preds,
+                zero_division=0,
+            )
+        ),
+        "accuracy": float(
+            accuracy_score(
+                y_true,
+                preds,
+            )
+        ),
+        "tn": int(tn),
+        "fp": int(fp),
+        "fn": int(fn),
+        "tp": int(tp),
     }
 
 
-def main():
-    args = parse_args()
 
-    # ------------------------------------------------------------------
-    # Add frozen project-code directory to sys.path.
-    #
-    # This is needed by common.load_model() and the frozen model files.
-    # No dataset_v2 import is required here.
-    # ------------------------------------------------------------------
-    common.add_code_dirs_to_path(args.code_dir)
+def select_validation_threshold(
+    y_true: np.ndarray,
+    probs: np.ndarray,
+) -> Dict[str, float]:
+    """
+    Select the operating threshold using validation data only.
 
-    out = args.out_dir
-    out.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    # ================================================================
-    # LOAD DATA
-    # ================================================================
-    print("Loading data...")
-
-    train_records = common.load_jsonl(
-        args.data_dir / "train.jsonl"
-    )
-
-    val_records = common.load_jsonl(
-        args.data_dir / "val.jsonl"
-    )
-
-    test_records = common.load_jsonl(
-        args.data_dir / "test.jsonl"
-    )
-
-    cf_rows = common.load_counterfactual(
-        args.data_dir / "counterfactual_eval.jsonl"
-    )
-
-    print(
-        f"train={len(train_records)} "
-        f"val={len(val_records)} "
-        f"test={len(test_records)} "
-        f"counterfactual={len(cf_rows)}"
-    )
-
-    report = {
-        "models": {}
-    }
-
-    # ================================================================
-    # RECOMPUTE TIME NORMALIZATION STATS
-    # ================================================================
-    recomputed_time_stats = fit_time_normalization_v2(
-        train_records
-    )
-
-    print(
-        "\nRecomputed time_stats from train.jsonl:",
-        recomputed_time_stats,
-    )
-
-    # ================================================================
-    # BASELINE
-    # Timing + category shortcut model
-    # ================================================================
-    import baseline as bl
-
-    print(
-        "\nFitting timing+category baseline on train..."
-    )
-
-    bl_model, bl_cols = bl.fit_baseline(
-        train_records
-    )
-
-    bl_val_probs = bl.predict_baseline(
-        bl_model,
-        bl_cols,
-        val_records,
-    )
-
-    bl_test_probs = bl.predict_baseline(
-        bl_model,
-        bl_cols,
-        test_records,
-    )
-
-    bl_cf_probs = bl.predict_baseline(
-        bl_model,
-        bl_cols,
-        cf_rows,
-    )
-
-    # ---------------------------------------------------------------
-    # Select threshold on validation ONLY
-    # ---------------------------------------------------------------
-    val_labels, val_p, val_ids = (
-        common.align_predictions(
-            val_records,
-            bl_val_probs,
-        )
-    )
+    Uses the same fixed threshold grid used by the existing evaluation
+    utilities, rather than selecting from individual probability values.
+    """
 
     thresholds = common.get_thresholds(
         0.05,
@@ -332,451 +168,1397 @@ def main():
         0.01,
     )
 
-    (
-        bl_thr,
-        bl_p_val,
-        bl_r_val,
-        bl_f1_val,
-    ) = common.sweep_best_threshold(
-        val_labels,
-        val_p,
-        thresholds,
+    best_threshold = None
+    best_f1 = -1.0
+    best_precision = 0.0
+    best_recall = 0.0
+
+    y_true = np.asarray(y_true).astype(int)
+    probs = np.asarray(probs).astype(float)
+
+    for threshold in thresholds:
+        preds = (
+            probs >= threshold
+        ).astype(int)
+
+        f1 = f1_score(
+            y_true,
+            preds,
+            zero_division=0,
+        )
+
+        precision = precision_score(
+            y_true,
+            preds,
+            zero_division=0,
+        )
+
+        recall = recall_score(
+            y_true,
+            preds,
+            zero_division=0,
+        )
+
+        if f1 > best_f1:
+            best_f1 = float(f1)
+            best_threshold = float(threshold)
+            best_precision = float(precision)
+            best_recall = float(recall)
+
+    if best_threshold is None:
+        raise RuntimeError(
+            "Could not select a validation threshold."
+        )
+
+    return {
+        "threshold": best_threshold,
+        "f1": best_f1,
+        "precision": best_precision,
+        "recall": best_recall,
+    }
+
+
+def select_test_best_threshold_diagnostic(
+    y_true: np.ndarray,
+    probs: np.ndarray,
+) -> Dict[str, float]:
+    """
+    Diagnostic only.
+
+    Selects the best threshold on the test set so that the best achievable
+    test F1 can be reported separately.
+
+    This value MUST NOT be used for model selection or primary reporting.
+    """
+
+    thresholds = common.get_thresholds(
+        0.05,
+        0.95,
+        0.01,
     )
 
-    # ---------------------------------------------------------------
-    # Evaluate baseline on test
-    # ---------------------------------------------------------------
-    test_labels, test_p, test_ids = (
-        common.align_predictions(
-            test_records,
-            bl_test_probs,
+    y_true = np.asarray(y_true).astype(int)
+    probs = np.asarray(probs).astype(float)
+
+    best_threshold = None
+    best_f1 = -1.0
+    best_precision = 0.0
+    best_recall = 0.0
+
+    for threshold in thresholds:
+        preds = (
+            probs >= threshold
+        ).astype(int)
+
+        f1 = f1_score(
+            y_true,
+            preds,
+            zero_division=0,
+        )
+
+        precision = precision_score(
+            y_true,
+            preds,
+            zero_division=0,
+        )
+
+        recall = recall_score(
+            y_true,
+            preds,
+            zero_division=0,
+        )
+
+        if f1 > best_f1:
+            best_f1 = float(f1)
+            best_threshold = float(threshold)
+            best_precision = float(precision)
+            best_recall = float(recall)
+
+    return {
+        "threshold": float(best_threshold),
+        "f1": float(best_f1),
+        "precision": float(best_precision),
+        "recall": float(best_recall),
+    }
+
+
+# ---------------------------------------------------------------------
+# Prediction saving
+# ---------------------------------------------------------------------
+
+def save_predictions(
+    output_dir: Path,
+    model_name: str,
+    split: str,
+    probabilities: np.ndarray,
+    labels: np.ndarray,
+) -> Path:
+    """
+    Save standard validation/test predictions.
+
+    Schema:
+        probability,label
+
+    Row order is exactly the order of the corresponding frozen benchmark
+    records.
+    """
+
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    file_stem = PREDICTION_FILE_NAMES[
+        model_name
+    ]
+
+    path = (
+        output_dir
+        / f"{file_stem}_{split}_predictions.csv"
+    )
+
+    df = pd.DataFrame(
+        {
+            "probability": np.asarray(
+                probabilities,
+                dtype=float,
+            ),
+            "label": np.asarray(
+                labels,
+                dtype=int,
+            ),
+        }
+    )
+
+    df.to_csv(
+        path,
+        index=False,
+    )
+
+    return path
+
+
+# ---------------------------------------------------------------------
+# Counterfactual prediction saving
+# ---------------------------------------------------------------------
+
+def save_counterfactual_predictions(
+    output_dir: Path,
+    model_name: str,
+    cf_rows: List[dict],
+    cf_probabilities: Dict[str, float],
+) -> Path:
+    """
+    Save counterfactual predictions in the format expected by the
+    downstream counterfactual analysis.
+
+    Each row retains the metadata needed to reconstruct base/transformed
+    pairs:
+
+        sample_id
+        counterfactual_group_id
+        role
+        transform
+        base_sample_id
+        prob
+    """
+
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    path = (
+        output_dir
+        / f"predictions_counterfactual_{PREDICTION_FILE_NAMES[model_name]}.jsonl"
+    )
+
+    rows = []
+
+    for record in cf_rows:
+        sample_id = record["sample_id"]
+
+        if sample_id not in cf_probabilities:
+            raise KeyError(
+                f"Missing counterfactual probability for "
+                f"sample_id={sample_id!r} "
+                f"while saving {model_name}."
+            )
+
+        rows.append(
+            {
+                "sample_id": sample_id,
+                "counterfactual_group_id": record[
+                    "counterfactual_group_id"
+                ],
+                "role": record["role"],
+                "transform": record["transform"],
+                "base_sample_id": record[
+                    "base_sample_id"
+                ],
+                "prob": float(
+                    cf_probabilities[sample_id]
+                ),
+            }
+        )
+
+    common.write_jsonl(
+        path,
+        rows,
+    )
+
+    return path
+
+
+# ---------------------------------------------------------------------
+# Identical test-set verification
+# ---------------------------------------------------------------------
+
+def verify_identical_test_set(
+    prediction_dir: Path,
+    model_names: List[str],
+) -> None:
+    """
+    Verify that all model prediction files contain the same ordered
+    test labels.
+
+    Since the CSV prediction format intentionally does not contain
+    sample_id, equality of the ordered labels plus equal row counts
+    verifies that Step 2 preserved the same frozen record order.
+    """
+
+    reference_labels = None
+    reference_model = None
+
+    for model_name in model_names:
+
+        file_stem = PREDICTION_FILE_NAMES[
+            model_name
+        ]
+
+        path = (
+            prediction_dir
+            / f"{file_stem}_test_predictions.csv"
+        )
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Missing test prediction file for "
+                f"{model_name}: {path}"
+            )
+
+        df = pd.read_csv(path)
+
+        if "label" not in df.columns:
+            raise ValueError(
+                f"Prediction file does not contain "
+                f"'label': {path}"
+            )
+
+        labels = df[
+            "label"
+        ].to_numpy(
+            dtype=int
+        )
+
+        if reference_labels is None:
+            reference_labels = labels
+            reference_model = model_name
+            continue
+
+        if len(labels) != len(
+            reference_labels
+        ):
+            raise ValueError(
+                "Test-set size mismatch: "
+                f"{reference_model}="
+                f"{len(reference_labels)}, "
+                f"{model_name}="
+                f"{len(labels)}"
+            )
+
+        if not np.array_equal(
+            labels,
+            reference_labels,
+        ):
+            raise ValueError(
+                "Test labels/order mismatch "
+                "between "
+                f"{reference_model} and "
+                f"{model_name}"
+            )
+
+    print(
+        f"Verified identical ordered test set "
+        f"across {len(model_names)} models."
+    )
+
+
+# ---------------------------------------------------------------------
+# Counterfactual integrity checks
+# ---------------------------------------------------------------------
+
+def verify_counterfactual_rows(
+    cf_rows: List[dict],
+) -> None:
+    """
+    Verify the minimum metadata required by downstream counterfactual
+    analysis.
+    """
+
+    required_fields = {
+        "sample_id",
+        "counterfactual_group_id",
+        "role",
+        "transform",
+        "base_sample_id",
+    }
+
+    if not cf_rows:
+        raise ValueError(
+            "Counterfactual dataset is empty."
+        )
+
+    for index, row in enumerate(cf_rows):
+
+        missing = (
+            required_fields
+            - set(row.keys())
+        )
+
+        if missing:
+            raise ValueError(
+                "Counterfactual row "
+                f"{index} is missing fields: "
+                f"{sorted(missing)}"
+            )
+
+    sample_ids = [
+        row["sample_id"]
+        for row in cf_rows
+    ]
+
+    if len(sample_ids) != len(
+        set(sample_ids)
+    ):
+        raise ValueError(
+            "Counterfactual sample_id values "
+            "are not unique."
+        )
+
+    print(
+        "Verified counterfactual metadata: "
+        f"{len(cf_rows)} unique rows."
+    )
+
+
+# ---------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------
+
+def main() -> None:
+
+    parser = argparse.ArgumentParser(
+        description=(
+            "Run final Step 2 evaluation across "
+            "the timing/category baseline, V2, "
+            "V3-A, V3-C, and V3-A bucketed "
+            "recurrence models."
         )
     )
 
-    bl_metrics = common.compute_full_metrics(
-        test_labels,
-        test_p,
-        bl_thr,
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=Path(
+            "ml/dataset/scripts/data"
+        ),
+        help=(
+            "Directory containing the frozen "
+            "V2 benchmark data."
+        ),
     )
 
-    bl_metrics[
-        "val_threshold_source"
-    ] = "recomputed_on_val_this_run"
-
-    report["models"][
-        "baseline_timing_category"
-    ] = bl_metrics
-
-    # ---------------------------------------------------------------
-    # Save baseline validation predictions
-    # ---------------------------------------------------------------
-    common.write_jsonl(
-        out / "predictions_val_baseline.jsonl",
-        [
-            {
-                "sample_id": sid,
-                "label": l,
-                "prob": p,
-            }
-            for sid, l, p in zip(
-                val_ids,
-                val_labels,
-                val_p,
-            )
-        ],
+    parser.add_argument(
+        "--checkpoints-dir",
+        type=Path,
+        default=Path(
+            "ml/models/checkpoints"
+        ),
+        help=(
+            "Directory containing neural "
+            "model checkpoints."
+        ),
     )
 
-    # ---------------------------------------------------------------
-    # Save baseline test predictions
-    # ---------------------------------------------------------------
-    common.write_jsonl(
-        out / "predictions_test_baseline.jsonl",
-        [
-            {
-                "sample_id": sid,
-                "label": l,
-                "prob": p,
-            }
-            for sid, l, p in zip(
-                test_ids,
-                test_labels,
-                test_p,
-            )
-        ],
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path(
+            "ml/eval/eval_outputs"
+        ),
+        help=(
+            "Directory for final evaluation "
+            "outputs."
+        ),
     )
 
-    # ---------------------------------------------------------------
-    # Save baseline counterfactual predictions
-    # ---------------------------------------------------------------
-    common.write_jsonl(
-        out / "predictions_counterfactual_baseline.jsonl",
-        [
-            {
-                "sample_id": r["sample_id"],
-                "counterfactual_group_id": r[
-                    "counterfactual_group_id"
-                ],
-                "role": r["role"],
-                "transform": r["transform"],
-                "base_sample_id": r["base_sample_id"],
-                "prob": bl_cf_probs[
-                    r["sample_id"]
-                ],
-            }
-            for r in cf_rows
-        ],
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=None,
+        help=(
+            "Torch device, e.g. cuda or cpu. "
+            "Defaults to automatic selection."
+        ),
+    )
+
+    args = parser.parse_args()
+
+    args.output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    prediction_dir = (
+        args.output_dir
+        / "predictions"
+    )
+
+    prediction_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    print("=" * 80)
+    print("SOCIA — STEP 2 FINAL EVALUATION")
+    print("=" * 80)
+
+    print()
+    print("Models:")
+    for model_name in ALL_MODEL_NAMES:
+        print(f"  - {model_name}")
+
+    # =================================================================
+    # BUILD / LOAD FROZEN BENCHMARK
+    # =================================================================
+
+    print()
+    print("=" * 80)
+    print("BUILDING V2 BENCHMARK")
+    print("=" * 80)
+
+    (
+        train_dataset,
+        val_dataset,
+        test_dataset,
+        time_stats,
+    ) = build_datasets_v2(
+        args.data_dir
+    )
+
+    # Raw records are used directly by both the baseline and neural
+    # inference code.
+    train_records = load_jsonl(
+        args.data_dir
+        / "train.jsonl"
+    )
+
+    val_records = load_jsonl(
+        args.data_dir
+        / "val.jsonl"
+    )
+
+    test_records = load_jsonl(
+        args.data_dir
+        / "test.jsonl"
+    )
+
+    # Counterfactual benchmark is required by Step 4.
+    cf_rows = common.load_counterfactual(
+        args.data_dir
+        / "counterfactual_eval.jsonl"
     )
 
     print(
-        f"baseline: "
-        f"val_thr={bl_thr} "
-        f"test={bl_metrics}"
+        f"Train records        : "
+        f"{len(train_records)}"
     )
 
-    # ================================================================
-    # V3-A / V3-C
-    # ================================================================
-    for version in common.MODEL_VERSIONS:
+    print(
+        f"Val records          : "
+        f"{len(val_records)}"
+    )
 
-        ckpt_path = (
+    print(
+        f"Test records         : "
+        f"{len(test_records)}"
+    )
+
+    print(
+        f"Counterfactual rows  : "
+        f"{len(cf_rows)}"
+    )
+
+    verify_counterfactual_rows(
+        cf_rows
+    )
+
+    # =================================================================
+    # LABELS
+    # =================================================================
+
+    y_train = np.asarray(
+        [
+            record["label"]
+            for record in train_records
+        ],
+        dtype=int,
+    )
+
+    y_val = np.asarray(
+        [
+            record["label"]
+            for record in val_records
+        ],
+        dtype=int,
+    )
+
+    y_test = np.asarray(
+        [
+            record["label"]
+            for record in test_records
+        ],
+        dtype=int,
+    )
+
+    print()
+    print("Label distribution:")
+
+    print(
+        f"  Train: positive="
+        f"{int(y_train.sum())}, "
+        f"negative="
+        f"{int(len(y_train) - y_train.sum())}"
+    )
+
+    print(
+        f"  Val  : positive="
+        f"{int(y_val.sum())}, "
+        f"negative="
+        f"{int(len(y_val) - y_val.sum())}"
+    )
+
+    print(
+        f"  Test : positive="
+        f"{int(y_test.sum())}, "
+        f"negative="
+        f"{int(len(y_test) - y_test.sum())}"
+    )
+
+    # =================================================================
+    # FINAL REPORT
+    # =================================================================
+
+    report = {
+        "benchmark": {
+            "train_size": int(
+                len(train_records)
+            ),
+            "val_size": int(
+                len(val_records)
+            ),
+            "test_size": int(
+                len(test_records)
+            ),
+            "test_positive": int(
+                y_test.sum()
+            ),
+            "test_negative": int(
+                len(y_test)
+                - y_test.sum()
+            ),
+            "counterfactual_size": int(
+                len(cf_rows)
+            ),
+        },
+        "models": {},
+    }
+
+    # =================================================================
+    # MODEL 1 — TIMING + CATEGORY BASELINE
+    # =================================================================
+
+    print()
+    print("=" * 80)
+    print(
+        "MODEL 1 / 5 — "
+        "TIMING + CATEGORY BASELINE"
+    )
+    print("=" * 80)
+
+    baseline_model, baseline_cols = (
+        fit_baseline(
+            train_records
+        )
+    )
+
+    # -------------------------------------------------------------
+    # Normal inference
+    # -------------------------------------------------------------
+
+    baseline_val_prob_dict = (
+        predict_baseline(
+            baseline_model,
+            baseline_cols,
+            val_records,
+        )
+    )
+
+    baseline_test_prob_dict = (
+        predict_baseline(
+            baseline_model,
+            baseline_cols,
+            test_records,
+        )
+    )
+
+    baseline_cf_prob_dict = (
+        predict_baseline(
+            baseline_model,
+            baseline_cols,
+            cf_rows,
+        )
+    )
+
+    # Restore exact frozen-record order.
+    baseline_val_probs = np.asarray(
+        [
+            baseline_val_prob_dict[
+                record["sample_id"]
+            ]
+            for record in val_records
+        ],
+        dtype=float,
+    )
+
+    baseline_test_probs = np.asarray(
+        [
+            baseline_test_prob_dict[
+                record["sample_id"]
+            ]
+            for record in test_records
+        ],
+        dtype=float,
+    )
+
+    # -------------------------------------------------------------
+    # Validation threshold
+    # -------------------------------------------------------------
+
+    baseline_val_selection = (
+        select_validation_threshold(
+            y_val,
+            baseline_val_probs,
+        )
+    )
+
+    baseline_threshold = (
+        baseline_val_selection[
+            "threshold"
+        ]
+    )
+
+    baseline_val_metrics = (
+        compute_binary_metrics(
+            y_val,
+            baseline_val_probs,
+            baseline_threshold,
+        )
+    )
+
+    baseline_test_metrics = (
+        compute_binary_metrics(
+            y_test,
+            baseline_test_probs,
+            baseline_threshold,
+        )
+    )
+
+    baseline_test_best = (
+        select_test_best_threshold_diagnostic(
+            y_test,
+            baseline_test_probs,
+        )
+    )
+
+    print()
+    print("Baseline validation:")
+    print(
+        f"  threshold : "
+        f"{baseline_threshold:.4f}"
+    )
+    print(
+        f"  F1        : "
+        f"{baseline_val_metrics['f1']:.4f}"
+    )
+    print(
+        f"  precision : "
+        f"{baseline_val_metrics['precision']:.4f}"
+    )
+    print(
+        f"  recall    : "
+        f"{baseline_val_metrics['recall']:.4f}"
+    )
+
+    print()
+    print("Baseline test:")
+    print(
+        f"  ROC-AUC   : "
+        f"{baseline_test_metrics['roc_auc']:.4f}"
+    )
+    print(
+        f"  PR-AUC    : "
+        f"{baseline_test_metrics['pr_auc']:.4f}"
+    )
+    print(
+        f"  F1        : "
+        f"{baseline_test_metrics['f1']:.4f}"
+    )
+    print(
+        f"  precision : "
+        f"{baseline_test_metrics['precision']:.4f}"
+    )
+    print(
+        f"  recall    : "
+        f"{baseline_test_metrics['recall']:.4f}"
+    )
+    print(
+        f"  accuracy  : "
+        f"{baseline_test_metrics['accuracy']:.4f}"
+    )
+
+    print()
+    print(
+        "Baseline diagnostic "
+        "test-best F1:"
+    )
+    print(
+        f"  threshold : "
+        f"{baseline_test_best['threshold']:.4f}"
+    )
+    print(
+        f"  F1        : "
+        f"{baseline_test_best['f1']:.4f}"
+    )
+
+    # -------------------------------------------------------------
+    # Save normal predictions
+    # -------------------------------------------------------------
+
+    save_predictions(
+        prediction_dir,
+        "baseline_timing_category",
+        "val",
+        baseline_val_probs,
+        y_val,
+    )
+
+    save_predictions(
+        prediction_dir,
+        "baseline_timing_category",
+        "test",
+        baseline_test_probs,
+        y_test,
+    )
+
+    # -------------------------------------------------------------
+    # Save counterfactual predictions
+    # -------------------------------------------------------------
+
+    save_counterfactual_predictions(
+        prediction_dir,
+        "baseline_timing_category",
+        cf_rows,
+        baseline_cf_prob_dict,
+    )
+
+    # -------------------------------------------------------------
+    # Report
+    # -------------------------------------------------------------
+
+    report["models"][
+        "baseline_timing_category"
+    ] = {
+        "type": "baseline",
+        "threshold": float(
+            baseline_threshold
+        ),
+        "validation": baseline_val_metrics,
+        "test": baseline_test_metrics,
+        "test_best_threshold_diagnostic": (
+            baseline_test_best
+        ),
+    }
+
+    # =================================================================
+    # MODELS 2–5 — NEURAL MODELS
+    # =================================================================
+
+    for index, version in enumerate(
+        NEURAL_MODEL_NAMES,
+        start=2,
+    ):
+
+        print()
+        print("=" * 80)
+        print(
+            f"MODEL {index} / 5 — "
+            f"{version.upper()}"
+        )
+        print("=" * 80)
+
+        checkpoint_path = (
             args.checkpoints_dir
             / f"best_model_{version}.pt"
         )
 
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(
+                f"Checkpoint not found for "
+                f"{version}: "
+                f"{checkpoint_path}"
+            )
+
         print(
-            f"\nLoading {version} from "
-            f"{ckpt_path} ..."
+            f"Checkpoint: "
+            f"{checkpoint_path}"
         )
+
+        # -------------------------------------------------------------
+        # Load model
+        # -------------------------------------------------------------
 
         model, meta, device = (
             common.load_model(
                 version,
-                ckpt_path,
-                device=None,
+                checkpoint_path,
+                device=args.device,
             )
         )
 
         print(
-            f"  checkpoint epoch={meta['epoch']} "
-            f"val_f1={meta['val_f1']:.4f} "
-            f"val_threshold={meta['val_threshold']} "
-            f"seed={meta['seed']}"
+            f"Device: {device}"
         )
 
-        # ------------------------------------------------------------
-        # Cross-check checkpoint time statistics against train.jsonl
-        # ------------------------------------------------------------
-        stored_ts = meta["time_stats"]
-
-        max_abs_diff = max(
-            abs(
-                stored_ts[k]
-                - recomputed_time_stats[k]
-            )
-            for k in stored_ts
-        )
-
-        print(
-            "  time_stats max abs diff vs "
-            "recomputed from train.jsonl: "
-            f"{max_abs_diff:.8f}"
-        )
-
-        if max_abs_diff > 1e-4:
+        if meta:
             print(
-                "  *** WARNING: time_stats mismatch "
-                "exceeds tolerance. This checkpoint may "
-                "not have been trained on "
-                "--data-dir/train.jsonl. ***"
+                "Checkpoint metadata:"
+            )
+            print(meta)
+
+        # -------------------------------------------------------------
+        # Cross-check checkpoint time stats
+        # -------------------------------------------------------------
+
+        if meta and "time_stats" in meta:
+
+            stored_time_stats = (
+                meta["time_stats"]
             )
 
-        # IMPORTANT:
-        # Use checkpoint's own stored stats for inference.
-        time_stats = stored_ts
+            max_abs_diff = max(
+                abs(
+                    float(
+                        stored_time_stats[key]
+                    )
+                    - float(
+                        time_stats[key]
+                    )
+                )
+                for key in stored_time_stats
+            )
 
-        # ------------------------------------------------------------
-        # Inference exactly once per split
-        # ------------------------------------------------------------
+            print(
+                "Time stats max abs diff "
+                "vs current train-fitted "
+                f"stats: {max_abs_diff:.8f}"
+            )
+
+            if max_abs_diff > 1e-4:
+                print(
+                    "  *** WARNING: checkpoint "
+                    "time_stats differ from "
+                    "train.jsonl-derived stats "
+                    "by more than 1e-4. ***"
+                )
+
+        # -------------------------------------------------------------
+        # Validation inference
+        # -------------------------------------------------------------
+
         val_probs = common.run_inference(
             model,
             val_records,
             time_stats,
             device,
+            version=version,
         )
+
+        # -------------------------------------------------------------
+        # Test inference
+        # -------------------------------------------------------------
 
         test_probs = common.run_inference(
             model,
             test_records,
             time_stats,
             device,
+            version=version,
         )
+
+        # -------------------------------------------------------------
+        # Counterfactual inference
+        #
+        # IMPORTANT:
+        # This is required by Step 4.
+        # -------------------------------------------------------------
 
         cf_probs = common.run_inference(
             model,
             cf_rows,
             time_stats,
             device,
+            version=version,
         )
 
-        # ------------------------------------------------------------
-        # Reproduce validation threshold
-        # ------------------------------------------------------------
-        val_labels, val_p, val_ids = (
-            common.align_predictions(
-                val_records,
+        # -------------------------------------------------------------
+        # Validation threshold
+        # -------------------------------------------------------------
+
+        val_selection = (
+            select_validation_threshold(
+                y_val,
                 val_probs,
             )
         )
 
-        (
-            my_thr,
-            my_p,
-            my_r,
-            my_f1,
-        ) = common.sweep_best_threshold(
-            val_labels,
-            val_p,
-            common.get_thresholds(),
+        threshold = (
+            val_selection["threshold"]
         )
 
-        print(
-            f"  reproduced val threshold={my_thr} "
-            f"(checkpoint stored "
-            f"{meta['val_threshold']}) "
-            f"reproduced val_f1={my_f1:.4f} "
-            f"(checkpoint stored "
-            f"{meta['val_f1']:.4f})"
+        val_metrics = (
+            compute_binary_metrics(
+                y_val,
+                val_probs,
+                threshold,
+            )
         )
 
-        if (
-            abs(
-                my_thr
-                - float(meta["val_threshold"])
+        test_metrics = (
+            compute_binary_metrics(
+                y_test,
+                test_probs,
+                threshold,
             )
-            > 1e-9
-            or abs(
-                my_f1
-                - float(meta["val_f1"])
-            )
-            > 1e-3
-        ):
-            print(
-                "  *** WARNING: reproduced val "
-                "threshold/F1 does not match the "
-                "checkpoint's stored value. Using the "
-                "freshly reproduced validation-derived "
-                "threshold. No test data is used for "
-                "threshold selection. ***"
-            )
+        )
 
-        # ------------------------------------------------------------
-        # Evaluate on test
-        # ------------------------------------------------------------
-        test_labels, test_p, test_ids = (
-            common.align_predictions(
-                test_records,
+        # -------------------------------------------------------------
+        # Test-best diagnostic
+        # -------------------------------------------------------------
+
+        test_best = (
+            select_test_best_threshold_diagnostic(
+                y_test,
                 test_probs,
             )
         )
 
-        metrics = common.compute_full_metrics(
-            test_labels,
-            test_p,
-            my_thr,
-        )
+        # -------------------------------------------------------------
+        # Print
+        # -------------------------------------------------------------
 
-        metrics[
-            "val_threshold_source"
-        ] = "recomputed_on_val_this_run"
-
-        metrics[
-            "checkpoint_reported_val_f1"
-        ] = float(meta["val_f1"])
-
-        metrics[
-            "checkpoint_reported_val_threshold"
-        ] = float(meta["val_threshold"])
-
-        metrics[
-            "reproduced_val_f1"
-        ] = my_f1
-
-        metrics[
-            "reproduced_val_threshold"
-        ] = my_thr
-
-        metrics[
-            "time_stats_max_abs_diff_vs_recomputed"
-        ] = max_abs_diff
-
-        report["models"][version] = metrics
-
-        # ------------------------------------------------------------
-        # Save validation predictions
-        # ------------------------------------------------------------
-        common.write_jsonl(
-            out / f"predictions_val_{version}.jsonl",
-            [
-                {
-                    "sample_id": sid,
-                    "label": l,
-                    "prob": p,
-                }
-                for sid, l, p in zip(
-                    val_ids,
-                    val_labels,
-                    val_p,
-                )
-            ],
-        )
-
-        # ------------------------------------------------------------
-        # Save test predictions
-        # ------------------------------------------------------------
-        common.write_jsonl(
-            out / f"predictions_test_{version}.jsonl",
-            [
-                {
-                    "sample_id": sid,
-                    "label": l,
-                    "prob": p,
-                }
-                for sid, l, p in zip(
-                    test_ids,
-                    test_labels,
-                    test_p,
-                )
-            ],
-        )
-
-        # ------------------------------------------------------------
-        # Save counterfactual predictions
-        # ------------------------------------------------------------
-        common.write_jsonl(
-            out / f"predictions_counterfactual_{version}.jsonl",
-            [
-                {
-                    "sample_id": r["sample_id"],
-                    "counterfactual_group_id": r[
-                        "counterfactual_group_id"
-                    ],
-                    "role": r["role"],
-                    "transform": r["transform"],
-                    "base_sample_id": r["base_sample_id"],
-                    "prob": cf_probs[
-                        r["sample_id"]
-                    ],
-                }
-                for r in cf_rows
-            ],
+        print()
+        print(
+            f"{version} validation:"
         )
 
         print(
-            f"  test metrics: {metrics}"
+            f"  threshold : "
+            f"{threshold:.4f}"
         )
 
-    # ================================================================
-    # Cross-model identical test set check
-    # ================================================================
-    id_sets = {}
-
-    for name in [
-        "baseline",
-        "v3a",
-        "v3c",
-    ]:
-        rows = common.load_jsonl(
-            out / f"predictions_test_{name}.jsonl"
+        print(
+            f"  F1        : "
+            f"{val_metrics['f1']:.4f}"
         )
 
-        id_sets[name] = {
-            r["sample_id"]
-            for r in rows
+        print(
+            f"  precision : "
+            f"{val_metrics['precision']:.4f}"
+        )
+
+        print(
+            f"  recall    : "
+            f"{val_metrics['recall']:.4f}"
+        )
+
+        print()
+        print(
+            f"{version} test:"
+        )
+
+        print(
+            f"  ROC-AUC   : "
+            f"{test_metrics['roc_auc']:.4f}"
+        )
+
+        print(
+            f"  PR-AUC    : "
+            f"{test_metrics['pr_auc']:.4f}"
+        )
+
+        print(
+            f"  F1        : "
+            f"{test_metrics['f1']:.4f}"
+        )
+
+        print(
+            f"  precision : "
+            f"{test_metrics['precision']:.4f}"
+        )
+
+        print(
+            f"  recall    : "
+            f"{test_metrics['recall']:.4f}"
+        )
+
+        print(
+            f"  accuracy  : "
+            f"{test_metrics['accuracy']:.4f}"
+        )
+
+        print()
+        print(
+            f"{version} diagnostic "
+            "test-best F1:"
+        )
+
+        print(
+            f"  threshold : "
+            f"{test_best['threshold']:.4f}"
+        )
+
+        print(
+            f"  F1        : "
+            f"{test_best['f1']:.4f}"
+        )
+
+        # -------------------------------------------------------------
+        # Save normal predictions
+        # -------------------------------------------------------------
+
+        save_predictions(
+            prediction_dir,
+            version,
+            "val",
+            val_probs,
+            y_val,
+        )
+
+        save_predictions(
+            prediction_dir,
+            version,
+            "test",
+            test_probs,
+            y_test,
+        )
+
+        # -------------------------------------------------------------
+        # Save counterfactual predictions
+        # -------------------------------------------------------------
+
+        cf_probability_dict = {
+            row["sample_id"]: float(
+                cf_probs[index]
+            )
+            for index, row in enumerate(
+                cf_rows
+            )
         }
 
-    same_set = (
-        id_sets["baseline"]
-        == id_sets["v3a"]
-        == id_sets["v3c"]
-    )
+        save_counterfactual_predictions(
+            prediction_dir,
+            version,
+            cf_rows,
+            cf_probability_dict,
+        )
 
-    report[
-        "same_frozen_test_set_across_models"
-    ] = same_set
+        # -------------------------------------------------------------
+        # Store report
+        # -------------------------------------------------------------
 
+        model_report = {
+            "type": "neural",
+            "checkpoint": str(
+                checkpoint_path
+            ),
+            "threshold": float(
+                threshold
+            ),
+            "validation": val_metrics,
+            "test": test_metrics,
+            "test_best_threshold_diagnostic": (
+                test_best
+            ),
+        }
+
+        if meta:
+            model_report[
+                "checkpoint_metadata"
+            ] = meta
+
+        report["models"][version] = (
+            model_report
+        )
+
+    # =================================================================
+    # VERIFY STANDARD TEST PREDICTIONS
+    # =================================================================
+
+    print()
+    print("=" * 80)
     print(
-        "\nSame frozen test set across "
-        f"baseline/v3a/v3c: {same_set}"
+        "VERIFYING IDENTICAL TEST SET "
+        "ACROSS ALL FIVE MODELS"
+    )
+    print("=" * 80)
+
+    verify_identical_test_set(
+        prediction_dir,
+        ALL_MODEL_NAMES,
     )
 
-    # ================================================================
-    # Write final JSON report
-    # ================================================================
-    common.write_json(
-        out / "final_evaluation_report.json",
-        report,
+    # =================================================================
+    # VERIFY COUNTERFACTUAL OUTPUTS
+    # =================================================================
+
+    print()
+    print("=" * 80)
+    print(
+        "VERIFYING COUNTERFACTUAL OUTPUTS"
     )
+    print("=" * 80)
 
-    # ================================================================
-    # Write flat CSV report
-    # ================================================================
-    with (
-        out / "final_evaluation_report.csv"
-    ).open(
-        "w",
-        newline="",
-        encoding="utf-8",
-    ) as f:
+    for model_name in ALL_MODEL_NAMES:
 
-        w = csv.writer(f)
-
-        w.writerow(
-            [
-                "model",
-                "n",
-                "threshold",
-                "roc_auc",
-                "pr_auc",
-                "f1",
-                "precision",
-                "recall",
-                "tp",
-                "tn",
-                "fp",
-                "fn",
+        file_stem = (
+            PREDICTION_FILE_NAMES[
+                model_name
             ]
         )
 
-        for name, m in report["models"].items():
+        cf_path = (
+            prediction_dir
+            / f"predictions_counterfactual_{file_stem}.jsonl"
+        )
 
-            w.writerow(
-                [
-                    name,
-                    m["n"],
-                    m["threshold"],
-                    m["roc_auc"],
-                    m["pr_auc"],
-                    m["f1"],
-                    m["precision"],
-                    m["recall"],
-                    m["tp"],
-                    m["tn"],
-                    m["fp"],
-                    m["fn"],
-                ]
+        if not cf_path.exists():
+            raise FileNotFoundError(
+                f"Missing counterfactual "
+                f"prediction file for "
+                f"{model_name}: "
+                f"{cf_path}"
             )
 
+        saved_cf_rows = (
+            common.load_jsonl(
+                cf_path
+            )
+        )
+
+        if len(saved_cf_rows) != len(
+            cf_rows
+        ):
+            raise ValueError(
+                "Counterfactual row-count "
+                "mismatch for "
+                f"{model_name}: "
+                f"expected {len(cf_rows)}, "
+                f"got {len(saved_cf_rows)}"
+            )
+
+        expected_ids = [
+            row["sample_id"]
+            for row in cf_rows
+        ]
+
+        actual_ids = [
+            row["sample_id"]
+            for row in saved_cf_rows
+        ]
+
+        if actual_ids != expected_ids:
+            raise ValueError(
+                "Counterfactual sample order "
+                "mismatch for "
+                f"{model_name}."
+            )
+
+        print(
+            f"  {model_name}: "
+            f"{len(saved_cf_rows)} rows OK"
+        )
+
+    # =================================================================
+    # SAVE FINAL JSON REPORT
+    # =================================================================
+
+    report_path = (
+        args.output_dir
+        / "final_evaluation_report.json"
+    )
+
+    with report_path.open(
+        "w",
+        encoding="utf-8",
+    ) as f:
+
+        json.dump(
+            report,
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+    # =================================================================
+    # SAVE COMPACT CSV COMPARISON
+    # =================================================================
+
+    rows = []
+
+    for model_name in ALL_MODEL_NAMES:
+
+        model_report = (
+            report["models"][
+                model_name
+            ]
+        )
+
+        test_metrics = (
+            model_report["test"]
+        )
+
+        rows.append(
+            {
+                "model": model_name,
+                "threshold": (
+                    model_report[
+                        "threshold"
+                    ]
+                ),
+                "roc_auc": (
+                    test_metrics[
+                        "roc_auc"
+                    ]
+                ),
+                "pr_auc": (
+                    test_metrics[
+                        "pr_auc"
+                    ]
+                ),
+                "f1": (
+                    test_metrics[
+                        "f1"
+                    ]
+                ),
+                "precision": (
+                    test_metrics[
+                        "precision"
+                    ]
+                ),
+                "recall": (
+                    test_metrics[
+                        "recall"
+                    ]
+                ),
+                "accuracy": (
+                    test_metrics[
+                        "accuracy"
+                    ]
+                ),
+            }
+        )
+
+    comparison_df = pd.DataFrame(
+        rows
+    )
+
+    comparison_path = (
+        args.output_dir
+        / "final_evaluation_comparison.csv"
+    )
+
+    comparison_df.to_csv(
+        comparison_path,
+        index=False,
+    )
+
+    # =================================================================
+    # FINAL SUMMARY
+    # =================================================================
+
+    print()
+    print("=" * 80)
     print(
-        f"\nWrote: "
-        f"{out / 'final_evaluation_report.json'}"
+        "FINAL FIVE-MODEL COMPARISON"
+    )
+    print("=" * 80)
+
+    print(
+        comparison_df.to_string(
+            index=False,
+            float_format=lambda x:
+                f"{x:.4f}",
+        )
+    )
+
+    print()
+    print("=" * 80)
+    print("OUTPUTS")
+    print("=" * 80)
+
+    print(
+        f"Report : "
+        f"{report_path}"
     )
 
     print(
-        f"Wrote: "
-        f"{out / 'final_evaluation_report.csv'}"
+        f"CSV    : "
+        f"{comparison_path}"
     )
 
-    print("\nStep 2 complete.")
+    print(
+        f"Predictions: "
+        f"{prediction_dir}"
+    )
+
+    print()
+    print(
+        "Step 2 completed successfully."
+    )
+
+    print(
+        "All five models were evaluated "
+        "on the same frozen test set."
+    )
+
+    print(
+        "Validation, test, and "
+        "counterfactual predictions "
+        "were saved for downstream "
+        "evaluation steps."
+    )
 
 
 if __name__ == "__main__":

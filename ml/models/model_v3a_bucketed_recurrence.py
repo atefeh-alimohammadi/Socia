@@ -50,7 +50,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from model import (
+from .model import (
     D_MODEL,
     DIM_FEEDFORWARD,
     DROPOUT,
@@ -61,7 +61,7 @@ from model import (
     AttentionPooling,
 )
 
-from model_v2 import (
+from .model_v2 import (
     RelativeTimeAttentionBias,
     ManualSelfAttentionLayer,
     _check_finite,

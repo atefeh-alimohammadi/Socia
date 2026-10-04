@@ -70,7 +70,7 @@ import torch.nn as nn
 
 # Reuse V1's backbone hyperparameters and the (unchanged) attention
 # pooling module directly, rather than redefining them.
-from model import (
+from .model import (
     D_MODEL,
     DIM_FEEDFORWARD,
     DROPOUT,

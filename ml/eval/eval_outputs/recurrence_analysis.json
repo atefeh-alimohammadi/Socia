@@ -1,101 +1,195 @@
-[
-  {
-    "model": "baseline_timing_category",
-    "n_occ_intended": 2,
-    "n": 487,
-    "mean_pred_prob": 0.5576460612713968,
-    "median_pred_prob": 0.5991101870473372,
-    "recall_at_threshold": 0.8418891170431212,
-    "threshold_used": 0.36,
-    "mean_prob_monotonic_nondecreasing_across_buckets": true,
-    "spearman_rho_bucket_vs_mean_prob_descriptive_only": 1.0
+{
+  "metadata": {
+    "description": "Positive-only recurrence-count analysis using n_occ_intended from test_eval_metadata.jsonl.",
+    "source_test_file": "D:\\AI Companion\\Socia\\ml\\dataset\\scripts\\data\\test.jsonl",
+    "source_metadata_file": "D:\\AI Companion\\Socia\\ml\\dataset\\scripts\\data\\test_eval_metadata.jsonl",
+    "test_size": 2000,
+    "positive_count": 1000,
+    "models": [
+      "baseline_timing_category",
+      "v2",
+      "v3a",
+      "v3c",
+      "v3a_bucketed_recurrence"
+    ],
+    "thresholds": {
+      "baseline_timing_category": 0.36,
+      "v2": 0.25,
+      "v3a": 0.45,
+      "v3c": 0.4,
+      "v3a_bucketed_recurrence": 0.45
+    }
   },
-  {
-    "model": "baseline_timing_category",
-    "n_occ_intended": 3,
-    "n": 360,
-    "mean_pred_prob": 0.6953585761345751,
-    "median_pred_prob": 0.7398366884601395,
-    "recall_at_threshold": 0.95,
-    "threshold_used": 0.36,
-    "mean_prob_monotonic_nondecreasing_across_buckets": true,
-    "spearman_rho_bucket_vs_mean_prob_descriptive_only": 1.0
-  },
-  {
-    "model": "baseline_timing_category",
-    "n_occ_intended": 4,
-    "n": 153,
-    "mean_pred_prob": 0.7430181273605451,
-    "median_pred_prob": 0.787716563695393,
-    "recall_at_threshold": 0.9607843137254902,
-    "threshold_used": 0.36,
-    "mean_prob_monotonic_nondecreasing_across_buckets": true,
-    "spearman_rho_bucket_vs_mean_prob_descriptive_only": 1.0
-  },
-  {
-    "model": "v3a",
-    "n_occ_intended": 2,
-    "n": 487,
-    "mean_pred_prob": 0.5347851958294118,
-    "median_pred_prob": 0.5380518436431885,
-    "recall_at_threshold": 0.6940451745379876,
-    "threshold_used": 0.45,
-    "mean_prob_monotonic_nondecreasing_across_buckets": true,
-    "spearman_rho_bucket_vs_mean_prob_descriptive_only": 1.0
-  },
-  {
-    "model": "v3a",
-    "n_occ_intended": 3,
-    "n": 360,
-    "mean_pred_prob": 0.627885275748041,
-    "median_pred_prob": 0.6466248631477356,
-    "recall_at_threshold": 0.8277777777777777,
-    "threshold_used": 0.45,
-    "mean_prob_monotonic_nondecreasing_across_buckets": true,
-    "spearman_rho_bucket_vs_mean_prob_descriptive_only": 1.0
-  },
-  {
-    "model": "v3a",
-    "n_occ_intended": 4,
-    "n": 153,
-    "mean_pred_prob": 0.7077460253939909,
-    "median_pred_prob": 0.7416431307792664,
-    "recall_at_threshold": 0.934640522875817,
-    "threshold_used": 0.45,
-    "mean_prob_monotonic_nondecreasing_across_buckets": true,
-    "spearman_rho_bucket_vs_mean_prob_descriptive_only": 1.0
-  },
-  {
-    "model": "v3c",
-    "n_occ_intended": 2,
-    "n": 487,
-    "mean_pred_prob": 0.5350068619635407,
-    "median_pred_prob": 0.5545789003372192,
-    "recall_at_threshold": 0.75564681724846,
-    "threshold_used": 0.4,
-    "mean_prob_monotonic_nondecreasing_across_buckets": true,
-    "spearman_rho_bucket_vs_mean_prob_descriptive_only": 1.0
-  },
-  {
-    "model": "v3c",
-    "n_occ_intended": 3,
-    "n": 360,
-    "mean_pred_prob": 0.628489367912213,
-    "median_pred_prob": 0.6575196385383606,
-    "recall_at_threshold": 0.8916666666666667,
-    "threshold_used": 0.4,
-    "mean_prob_monotonic_nondecreasing_across_buckets": true,
-    "spearman_rho_bucket_vs_mean_prob_descriptive_only": 1.0
-  },
-  {
-    "model": "v3c",
-    "n_occ_intended": 4,
-    "n": 153,
-    "mean_pred_prob": 0.7091886706991133,
-    "median_pred_prob": 0.7755315899848938,
-    "recall_at_threshold": 0.9477124183006536,
-    "threshold_used": 0.4,
-    "mean_prob_monotonic_nondecreasing_across_buckets": true,
-    "spearman_rho_bucket_vs_mean_prob_descriptive_only": 1.0
+  "models": {
+    "baseline_timing_category": {
+      "threshold": 0.36,
+      "buckets": {
+        "2": {
+          "n": 487,
+          "mean_probability": 0.5576460612713968,
+          "median_probability": 0.5991101870473372,
+          "recall_at_threshold": 0.8418891170431212,
+          "threshold": 0.36
+        },
+        "3": {
+          "n": 360,
+          "mean_probability": 0.6953585761345751,
+          "median_probability": 0.7398366884601395,
+          "recall_at_threshold": 0.95,
+          "threshold": 0.36
+        },
+        "4": {
+          "n": 153,
+          "mean_probability": 0.7430181273605452,
+          "median_probability": 0.787716563695393,
+          "recall_at_threshold": 0.9607843137254902,
+          "threshold": 0.36
+        }
+      },
+      "monotonicity": {
+        "mean_probability_non_decreasing": true,
+        "recall_non_decreasing": true
+      },
+      "spearman": {
+        "recurrence_count_vs_mean_probability": 0.9999999999999998,
+        "recurrence_count_vs_recall": 0.9999999999999998
+      }
+    },
+    "v2": {
+      "threshold": 0.25,
+      "buckets": {
+        "2": {
+          "n": 487,
+          "mean_probability": 0.4533796916033086,
+          "median_probability": 0.47704145312309265,
+          "recall_at_threshold": 0.8418891170431212,
+          "threshold": 0.25
+        },
+        "3": {
+          "n": 360,
+          "mean_probability": 0.49159814471171964,
+          "median_probability": 0.5333075225353241,
+          "recall_at_threshold": 0.8527777777777777,
+          "threshold": 0.25
+        },
+        "4": {
+          "n": 153,
+          "mean_probability": 0.5595284826517885,
+          "median_probability": 0.6375449299812317,
+          "recall_at_threshold": 0.9084967320261438,
+          "threshold": 0.25
+        }
+      },
+      "monotonicity": {
+        "mean_probability_non_decreasing": true,
+        "recall_non_decreasing": true
+      },
+      "spearman": {
+        "recurrence_count_vs_mean_probability": 0.9999999999999998,
+        "recurrence_count_vs_recall": 0.9999999999999998
+      }
+    },
+    "v3a": {
+      "threshold": 0.45,
+      "buckets": {
+        "2": {
+          "n": 487,
+          "mean_probability": 0.5347851960741947,
+          "median_probability": 0.5380518436431885,
+          "recall_at_threshold": 0.6940451745379876,
+          "threshold": 0.45
+        },
+        "3": {
+          "n": 360,
+          "mean_probability": 0.6278852759136094,
+          "median_probability": 0.6466248631477356,
+          "recall_at_threshold": 0.8277777777777777,
+          "threshold": 0.45
+        },
+        "4": {
+          "n": 153,
+          "mean_probability": 0.7077460253939909,
+          "median_probability": 0.7416431307792664,
+          "recall_at_threshold": 0.934640522875817,
+          "threshold": 0.45
+        }
+      },
+      "monotonicity": {
+        "mean_probability_non_decreasing": true,
+        "recall_non_decreasing": true
+      },
+      "spearman": {
+        "recurrence_count_vs_mean_probability": 0.9999999999999998,
+        "recurrence_count_vs_recall": 0.9999999999999998
+      }
+    },
+    "v3c": {
+      "threshold": 0.4,
+      "buckets": {
+        "2": {
+          "n": 487,
+          "mean_probability": 0.535006861902345,
+          "median_probability": 0.5545789003372192,
+          "recall_at_threshold": 0.75564681724846,
+          "threshold": 0.4
+        },
+        "3": {
+          "n": 360,
+          "mean_probability": 0.6284893673327234,
+          "median_probability": 0.6575196385383606,
+          "recall_at_threshold": 0.8916666666666667,
+          "threshold": 0.4
+        },
+        "4": {
+          "n": 153,
+          "mean_probability": 0.7091886706991133,
+          "median_probability": 0.7755315899848938,
+          "recall_at_threshold": 0.9477124183006536,
+          "threshold": 0.4
+        }
+      },
+      "monotonicity": {
+        "mean_probability_non_decreasing": true,
+        "recall_non_decreasing": true
+      },
+      "spearman": {
+        "recurrence_count_vs_mean_probability": 0.9999999999999998,
+        "recurrence_count_vs_recall": 0.9999999999999998
+      }
+    },
+    "v3a_bucketed_recurrence": {
+      "threshold": 0.45,
+      "buckets": {
+        "2": {
+          "n": 487,
+          "mean_probability": 0.5574696390837951,
+          "median_probability": 0.6241310238838196,
+          "recall_at_threshold": 0.7084188911704312,
+          "threshold": 0.45
+        },
+        "3": {
+          "n": 360,
+          "mean_probability": 0.6426652477433284,
+          "median_probability": 0.709955483675003,
+          "recall_at_threshold": 0.8138888888888889,
+          "threshold": 0.45
+        },
+        "4": {
+          "n": 153,
+          "mean_probability": 0.7040918783035154,
+          "median_probability": 0.7755503058433533,
+          "recall_at_threshold": 0.8562091503267973,
+          "threshold": 0.45
+        }
+      },
+      "monotonicity": {
+        "mean_probability_non_decreasing": true,
+        "recall_non_decreasing": true
+      },
+      "spearman": {
+        "recurrence_count_vs_mean_probability": 0.9999999999999998,
+        "recurrence_count_vs_recall": 0.9999999999999998
+      }
+    }
   }
-]
+}

@@ -40,7 +40,7 @@ from torch.utils.data import Dataset
 # Reuse loading/validation/dataloader logic from the V1 dataset module
 # unchanged -- no reason to duplicate it, and it keeps V1 and V2
 # guaranteed to agree on what counts as a valid record.
-from dataset import (
+from .dataset import (
     DEFAULT_DATA_DIR,
     EXPECTED_WINDOW_LENGTH,
     NUM_CATEGORIES,

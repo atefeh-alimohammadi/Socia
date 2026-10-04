@@ -1,6 +1,6 @@
 [
   {
-    "model": "baseline",
+    "model": "baseline_timing_category",
     "transform": "identity_substitution",
     "n": 300,
     "mean_original_prob": 0.6444890871145456,
@@ -12,7 +12,7 @@
     "fraction_moving_expected_direction_decrease": 0.82
   },
   {
-    "model": "baseline",
+    "model": "baseline_timing_category",
     "transform": "order_permutation",
     "n": 300,
     "mean_original_prob": 0.6444890871145456,
@@ -24,7 +24,7 @@
     "fraction_moving_expected_direction_decrease": 0.0
   },
   {
-    "model": "baseline",
+    "model": "baseline_timing_category",
     "transform": "timestamp_collapse",
     "n": 300,
     "mean_original_prob": 0.6444890871145456,
@@ -34,6 +34,42 @@
     "mean_change": 0.00043166290936867766,
     "median_change": 0.0,
     "fraction_moving_expected_direction_decrease": 0.49333333333333335
+  },
+  {
+    "model": "v2",
+    "transform": "identity_substitution",
+    "n": 300,
+    "mean_original_prob": 0.4970903288697203,
+    "median_original_prob": 0.5395625233650208,
+    "mean_counterfactual_prob": 0.38669490632911524,
+    "median_counterfactual_prob": 0.37599772214889526,
+    "mean_change": -0.11039542254060507,
+    "median_change": -0.0934116542339325,
+    "fraction_moving_expected_direction_decrease": 0.82
+  },
+  {
+    "model": "v2",
+    "transform": "order_permutation",
+    "n": 300,
+    "mean_original_prob": 0.4970903288697203,
+    "median_original_prob": 0.5395625233650208,
+    "mean_counterfactual_prob": 0.4935445294653376,
+    "median_counterfactual_prob": 0.5246199667453766,
+    "mean_change": -0.003545799404382706,
+    "median_change": -0.0020591020584106445,
+    "fraction_moving_expected_direction_decrease": 0.5233333333333333
+  },
+  {
+    "model": "v2",
+    "transform": "timestamp_collapse",
+    "n": 300,
+    "mean_original_prob": 0.4970903288697203,
+    "median_original_prob": 0.5395625233650208,
+    "mean_counterfactual_prob": 0.42051904945323865,
+    "median_counterfactual_prob": 0.4320727735757828,
+    "mean_change": -0.07657127941648166,
+    "median_change": -0.05414092540740967,
+    "fraction_moving_expected_direction_decrease": 0.74
   },
   {
     "model": "v3a",
@@ -106,5 +142,41 @@
     "mean_change": -0.01998283792131891,
     "median_change": -0.015010908246040344,
     "fraction_moving_expected_direction_decrease": 0.6366666666666667
+  },
+  {
+    "model": "v3a_bucketed_recurrence",
+    "transform": "identity_substitution",
+    "n": 300,
+    "mean_original_prob": 0.6241272389516235,
+    "median_original_prob": 0.6928558349609375,
+    "mean_counterfactual_prob": 0.5102887014392763,
+    "median_counterfactual_prob": 0.530921459197998,
+    "mean_change": -0.1138385375123471,
+    "median_change": -0.08568824082612991,
+    "fraction_moving_expected_direction_decrease": 0.85
+  },
+  {
+    "model": "v3a_bucketed_recurrence",
+    "transform": "order_permutation",
+    "n": 300,
+    "mean_original_prob": 0.6241272389516235,
+    "median_original_prob": 0.6928558349609375,
+    "mean_counterfactual_prob": 0.6251191774910937,
+    "median_counterfactual_prob": 0.6827695071697235,
+    "mean_change": 0.0009919385394702356,
+    "median_change": -0.0022143125534057617,
+    "fraction_moving_expected_direction_decrease": 0.5266666666666666
+  },
+  {
+    "model": "v3a_bucketed_recurrence",
+    "transform": "timestamp_collapse",
+    "n": 300,
+    "mean_original_prob": 0.6241272389516235,
+    "median_original_prob": 0.6928558349609375,
+    "mean_counterfactual_prob": 0.5887661617777,
+    "median_counterfactual_prob": 0.6582302153110504,
+    "mean_change": -0.03536107717392345,
+    "median_change": -0.02106831967830658,
+    "fraction_moving_expected_direction_decrease": 0.6133333333333333
   }
 ]

@@ -1,57 +1,261 @@
 {
+  "benchmark": {
+    "train_size": 12000,
+    "val_size": 2000,
+    "test_size": 2000,
+    "test_positive": 1000,
+    "test_negative": 1000,
+    "counterfactual_size": 1200
+  },
   "models": {
     "baseline_timing_category": {
-      "n": 2000,
+      "type": "baseline",
       "threshold": 0.36,
-      "roc_auc": 0.806942,
-      "pr_auc": 0.7588802240440929,
-      "f1": 0.7621873675286138,
-      "precision": 0.6615158204562178,
-      "recall": 0.899,
-      "tp": 899,
-      "tn": 540,
-      "fp": 460,
-      "fn": 101,
-      "val_threshold_source": "recomputed_on_val_this_run"
+      "validation": {
+        "roc_auc": 0.820122,
+        "pr_auc": 0.7713992659809814,
+        "f1": 0.7791771620486986,
+        "precision": 0.6714905933429812,
+        "recall": 0.928,
+        "accuracy": 0.737,
+        "tn": 546,
+        "fp": 454,
+        "fn": 72,
+        "tp": 928
+      },
+      "test": {
+        "roc_auc": 0.806942,
+        "pr_auc": 0.7588802240440929,
+        "f1": 0.7621873675286138,
+        "precision": 0.6615158204562178,
+        "recall": 0.899,
+        "accuracy": 0.7195,
+        "tn": 540,
+        "fp": 460,
+        "fn": 101,
+        "tp": 899
+      },
+      "test_best_threshold_diagnostic": {
+        "threshold": 0.43,
+        "f1": 0.7667109340416113,
+        "precision": 0.687847498014297,
+        "recall": 0.866
+      }
+    },
+    "v2": {
+      "type": "neural",
+      "checkpoint": "ml\\models\\checkpoints\\best_model_v2.pt",
+      "threshold": 0.25,
+      "validation": {
+        "roc_auc": 0.7587839999999999,
+        "pr_auc": 0.7312674933129288,
+        "f1": 0.7380330722367275,
+        "precision": 0.6533127889060092,
+        "recall": 0.848,
+        "accuracy": 0.699,
+        "tn": 550,
+        "fp": 450,
+        "fn": 152,
+        "tp": 848
+      },
+      "test": {
+        "roc_auc": 0.74695,
+        "pr_auc": 0.7012936157390757,
+        "f1": 0.7288207747977863,
+        "precision": 0.6345441067457376,
+        "recall": 0.856,
+        "accuracy": 0.6815,
+        "tn": 507,
+        "fp": 493,
+        "fn": 144,
+        "tp": 856
+      },
+      "test_best_threshold_diagnostic": {
+        "threshold": 0.19,
+        "f1": 0.7325396825396825,
+        "precision": 0.6072368421052632,
+        "recall": 0.923
+      },
+      "checkpoint_metadata": {
+        "epoch": 25,
+        "val_f1": 0.7380330722367275,
+        "val_threshold": 0.25,
+        "val_precision": 0.6533127889060092,
+        "val_recall": 0.848,
+        "time_stats": {
+          "abs_mean": 4.216048240661621,
+          "abs_std": 1.4234261512756348,
+          "gap_prev_mean": 1.9005885124206543,
+          "gap_prev_std": 1.0277233123779297,
+          "gap_same_cat_mean": 3.5191490650177,
+          "gap_same_cat_std": 1.1888858079910278
+        },
+        "seed": 42,
+        "model_version": "v2",
+        "augmentation_config": {
+          "too_slow_min_factor": 1.3,
+          "too_slow_max_factor": 5.0,
+          "ranking_margin": 0.5,
+          "ranking_loss_weight": 1.0,
+          "reorder_loss_weight": 0.3
+        }
+      }
     },
     "v3a": {
-      "n": 2000,
+      "type": "neural",
+      "checkpoint": "ml\\models\\checkpoints\\best_model_v3a.pt",
       "threshold": 0.45,
-      "roc_auc": 0.773793,
-      "pr_auc": 0.7216498123889402,
-      "f1": 0.7307692307692307,
-      "precision": 0.6881625441696113,
-      "recall": 0.779,
-      "tp": 779,
-      "tn": 647,
-      "fp": 353,
-      "fn": 221,
-      "val_threshold_source": "recomputed_on_val_this_run",
-      "checkpoint_reported_val_f1": 0.7576301615798923,
-      "checkpoint_reported_val_threshold": 0.45,
-      "reproduced_val_f1": 0.7576301615798923,
-      "reproduced_val_threshold": 0.45,
-      "time_stats_max_abs_diff_vs_recomputed": 2.638582099478981e-07
+      "validation": {
+        "roc_auc": 0.798519,
+        "pr_auc": 0.7708222170492747,
+        "f1": 0.7576301615798923,
+        "precision": 0.6872964169381107,
+        "recall": 0.844,
+        "accuracy": 0.73,
+        "tn": 616,
+        "fp": 384,
+        "fn": 156,
+        "tp": 844
+      },
+      "test": {
+        "roc_auc": 0.773793,
+        "pr_auc": 0.7216498123889402,
+        "f1": 0.7307692307692307,
+        "precision": 0.6881625441696113,
+        "recall": 0.779,
+        "accuracy": 0.713,
+        "tn": 647,
+        "fp": 353,
+        "fn": 221,
+        "tp": 779
+      },
+      "test_best_threshold_diagnostic": {
+        "threshold": 0.33,
+        "f1": 0.7507139942880457,
+        "precision": 0.6340454858718125,
+        "recall": 0.92
+      },
+      "checkpoint_metadata": {
+        "epoch": 33,
+        "val_f1": 0.7576301615798923,
+        "val_threshold": 0.45,
+        "val_precision": 0.6872964169381107,
+        "val_recall": 0.844,
+        "time_stats": {
+          "abs_mean": 4.216048240661621,
+          "abs_std": 1.4234261512756348,
+          "gap_prev_mean": 1.9005885124206543,
+          "gap_prev_std": 1.0277233123779297,
+          "gap_same_cat_mean": 3.5191490650177,
+          "gap_same_cat_std": 1.1888858079910278
+        },
+        "seed": 42,
+        "model_version": "v3a"
+      }
     },
     "v3c": {
-      "n": 2000,
+      "type": "neural",
+      "checkpoint": "ml\\models\\checkpoints\\best_model_v3c.pt",
       "threshold": 0.4,
-      "roc_auc": 0.7697559999999999,
-      "pr_auc": 0.7157265935737458,
-      "f1": 0.7364238410596027,
-      "precision": 0.6592885375494071,
-      "recall": 0.834,
-      "tp": 834,
-      "tn": 569,
-      "fp": 431,
-      "fn": 166,
-      "val_threshold_source": "recomputed_on_val_this_run",
-      "checkpoint_reported_val_f1": 0.7686408180656157,
-      "checkpoint_reported_val_threshold": 0.4,
-      "reproduced_val_f1": 0.7686408180656157,
-      "reproduced_val_threshold": 0.4,
-      "time_stats_max_abs_diff_vs_recomputed": 2.638582099478981e-07
+      "validation": {
+        "roc_auc": 0.7995720000000001,
+        "pr_auc": 0.7672191485184093,
+        "f1": 0.7686408180656157,
+        "precision": 0.6696362286562731,
+        "recall": 0.902,
+        "accuracy": 0.7285,
+        "tn": 555,
+        "fp": 445,
+        "fn": 98,
+        "tp": 902
+      },
+      "test": {
+        "roc_auc": 0.7697559999999999,
+        "pr_auc": 0.7157265935737458,
+        "f1": 0.7364238410596027,
+        "precision": 0.6592885375494071,
+        "recall": 0.834,
+        "accuracy": 0.7015,
+        "tn": 569,
+        "fp": 431,
+        "fn": 166,
+        "tp": 834
+      },
+      "test_best_threshold_diagnostic": {
+        "threshold": 0.34,
+        "f1": 0.7452282157676349,
+        "precision": 0.6368794326241135,
+        "recall": 0.898
+      },
+      "checkpoint_metadata": {
+        "epoch": 29,
+        "val_f1": 0.7686408180656157,
+        "val_threshold": 0.4,
+        "val_precision": 0.6696362286562731,
+        "val_recall": 0.902,
+        "time_stats": {
+          "abs_mean": 4.216048240661621,
+          "abs_std": 1.4234261512756348,
+          "gap_prev_mean": 1.9005885124206543,
+          "gap_prev_std": 1.0277233123779297,
+          "gap_same_cat_mean": 3.5191490650177,
+          "gap_same_cat_std": 1.1888858079910278
+        },
+        "seed": 42,
+        "model_version": "v3c"
+      }
+    },
+    "v3a_bucketed_recurrence": {
+      "type": "neural",
+      "checkpoint": "ml\\models\\checkpoints\\best_model_v3a_bucketed_recurrence.pt",
+      "threshold": 0.45,
+      "validation": {
+        "roc_auc": 0.807122,
+        "pr_auc": 0.7687685040154424,
+        "f1": 0.7716324710080286,
+        "precision": 0.6964573268921095,
+        "recall": 0.865,
+        "accuracy": 0.744,
+        "tn": 623,
+        "fp": 377,
+        "fn": 135,
+        "tp": 865
+      },
+      "test": {
+        "roc_auc": 0.7755949999999999,
+        "pr_auc": 0.7298767370467621,
+        "f1": 0.7200374531835206,
+        "precision": 0.6769366197183099,
+        "recall": 0.769,
+        "accuracy": 0.701,
+        "tn": 633,
+        "fp": 367,
+        "fn": 231,
+        "tp": 769
+      },
+      "test_best_threshold_diagnostic": {
+        "threshold": 0.29,
+        "f1": 0.7545304777594728,
+        "precision": 0.6414565826330533,
+        "recall": 0.916
+      },
+      "checkpoint_metadata": {
+        "epoch": 34,
+        "val_f1": 0.7716324710080286,
+        "val_threshold": 0.45,
+        "val_precision": 0.6964573268921095,
+        "val_recall": 0.865,
+        "time_stats": {
+          "abs_mean": 4.216048240661621,
+          "abs_std": 1.4234261512756348,
+          "gap_prev_mean": 1.9005885124206543,
+          "gap_prev_std": 1.0277233123779297,
+          "gap_same_cat_mean": 3.5191490650177,
+          "gap_same_cat_std": 1.1888858079910278
+        },
+        "seed": 42,
+        "model_version": "v3a_bucketed_recurrence"
+      }
     }
-  },
-  "same_frozen_test_set_across_models": true
+  }
 }

@@ -1,255 +1,1244 @@
-"""
-Socia ML final evaluation — shared utilities.
-
-Nothing in this file trains, retrains, or modifies any model, dataset, or
-checkpoint. It only loads frozen artifacts and runs inference/metrics.
-
-This module needs `torch` and the frozen project code (model.py,
-model_v2.py, model_v3a.py, model_v3c.py, dataset_v2.py) importable. Point
---code-dir at the directory containing them (see step2_final_evaluation.py
---help). It does NOT need `dataset.py`'s strict validators for the
-counterfactual file (see load_counterfactual below) because that file
-intentionally has a different, evaluation-only schema.
-"""
 from __future__ import annotations
 
 import json
-import math
-import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import torch
 
 
-# ---------------------------------------------------------------------------
-# Path / import setup
-# ---------------------------------------------------------------------------
+# =============================================================================
+# MODEL VERSIONS
+# =============================================================================
 
-def add_code_dirs_to_path(*dirs: Path) -> None:
-    for d in dirs:
-        d = str(Path(d).resolve())
-        if d not in sys.path:
-            sys.path.insert(0, d)
+MODEL_VERSIONS = (
+    "v2",
+    "v3a",
+    "v3c",
+    "v3a_bucketed_recurrence",
+)
 
 
-# ---------------------------------------------------------------------------
-# JSONL I/O
-# ---------------------------------------------------------------------------
+# =============================================================================
+# DEVICE
+# =============================================================================
 
-def load_jsonl(path: Path) -> List[dict]:
+def resolve_device(
+    device: Optional[str | torch.device] = None,
+) -> torch.device:
+    """
+    Resolve the torch device used by evaluation.
+
+    If device is explicitly supplied, use it.
+    Otherwise prefer CUDA when available, then CPU.
+    """
+
+    if device is not None:
+        if isinstance(device, torch.device):
+            return device
+
+        return torch.device(device)
+
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+
+    return torch.device("cpu")
+
+
+# =============================================================================
+# MODEL LOADING
+# =============================================================================
+
+def load_model(
+    version: str,
+    checkpoint_path: Path,
+    device: Optional[str | torch.device] = None,
+):
+    """
+    Load a trained neural model checkpoint.
+
+    `checkpoint_path` may be either:
+      - the exact .pt checkpoint file
+      - the checkpoint directory
+
+    Returns:
+        model, checkpoint_metadata, resolved_device
+    """
+
+    if version not in MODEL_VERSIONS:
+        raise ValueError(
+            f"Unknown model version: {version}. "
+            f"Expected one of: {MODEL_VERSIONS}"
+        )
+
+    # -------------------------------------------------------------------------
+    # Actual model classes used by this project
+    # -------------------------------------------------------------------------
+
+    if version == "v2":
+        from ..models.model_v2 import (
+            SociaPatternTransformerV2 as ModelClass
+        )
+
+    elif version == "v3a":
+        from ..models.model_v3a import (
+            SociaPatternTransformerV3A as ModelClass
+        )
+
+    elif version == "v3c":
+        from ..models.model_v3c import (
+            SociaPatternTransformerV3C as ModelClass
+        )
+
+    elif version == "v3a_bucketed_recurrence":
+        from ..models.model_v3a_bucketed_recurrence import (
+            SociaPatternTransformerV3ABucketedRecurrence as ModelClass
+        )
+
+    else:
+        raise AssertionError(
+            f"Unhandled model version: {version}"
+        )
+
+    # -------------------------------------------------------------------------
+    # Resolve device
+    # -------------------------------------------------------------------------
+
+    resolved_device = resolve_device(device)
+
+    # -------------------------------------------------------------------------
+    # Resolve checkpoint path
+    # -------------------------------------------------------------------------
+
+    checkpoint_path = Path(checkpoint_path)
+
+    if checkpoint_path.is_dir():
+        checkpoint_path = (
+            checkpoint_path / f"best_model_{version}.pt"
+        )
+
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(
+            f"Checkpoint not found for {version}:\n"
+            f"{checkpoint_path}"
+        )
+
+    if not checkpoint_path.is_file():
+        raise FileNotFoundError(
+            f"Checkpoint path is not a file:\n"
+            f"{checkpoint_path}"
+        )
+
+    # -------------------------------------------------------------------------
+    # Load checkpoint
+    # -------------------------------------------------------------------------
+
+    checkpoint = torch.load(
+        checkpoint_path,
+        map_location=resolved_device,
+    )
+
+    # -------------------------------------------------------------------------
+    # Extract state dict
+    # -------------------------------------------------------------------------
+
+    if isinstance(checkpoint, dict):
+
+        if "model_state_dict" in checkpoint:
+            state_dict = checkpoint["model_state_dict"]
+
+        elif "state_dict" in checkpoint:
+            state_dict = checkpoint["state_dict"]
+
+        else:
+            # Checkpoint itself is a state_dict.
+            state_dict = checkpoint
+
+    else:
+        state_dict = checkpoint
+
+    # -------------------------------------------------------------------------
+    # Extract metadata
+    # -------------------------------------------------------------------------
+
+    metadata: Dict[str, Any] = {}
+
+    if isinstance(checkpoint, dict):
+        metadata = {
+            key: value
+            for key, value in checkpoint.items()
+            if key not in {
+                "model_state_dict",
+                "state_dict",
+            }
+        }
+
+    # -------------------------------------------------------------------------
+    # Construct model
+    # -------------------------------------------------------------------------
+
+    try:
+        model = ModelClass()
+
+    except TypeError as exc:
+        raise RuntimeError(
+            f"Could not construct model '{version}' "
+            f"using {ModelClass.__name__}().\n\n"
+            f"Constructor error:\n{exc}"
+        ) from exc
+
+    # -------------------------------------------------------------------------
+    # Load weights
+    # -------------------------------------------------------------------------
+
+    try:
+        model.load_state_dict(state_dict)
+
+    except RuntimeError as exc:
+        raise RuntimeError(
+            f"Failed to load checkpoint weights for '{version}'.\n"
+            f"Checkpoint: {checkpoint_path}\n"
+            f"Model class: {ModelClass.__name__}\n\n"
+            f"Original error:\n{exc}"
+        ) from exc
+
+    model.to(resolved_device)
+    model.eval()
+
+    return model, metadata, resolved_device
+
+
+# =============================================================================
+# RECORD -> TENSOR CONVERSION
+# =============================================================================
+
+def records_to_tensors(
+    records: List[Dict[str, Any]],
+    time_stats: Dict[str, float],
+    device: Optional[str | torch.device] = None,
+):
+    """
+    Convert raw records into the tensor inputs expected by V2/V3-A/V3-C.
+
+    The actual dataset_v2.py does NOT expose a records_to_tensors()
+    function. Instead, it exposes:
+
+        compute_temporal_features_single()
+
+    We use that exact implementation here so evaluation reproduces the
+    same temporal feature calculation used by the V2/V3-A/V3-C models.
+
+    Returns:
+        tuple:
+            category_ids
+            temporal_features
+            raw_delta_hours
+
+    Labels are intentionally excluded because inference does not need them.
+    """
+
+    from ..models.dataset_v2 import (
+        compute_temporal_features_single,
+    )
+
+    resolved_device = resolve_device(device)
+
+    category_batches: List[torch.Tensor] = []
+    temporal_batches: List[torch.Tensor] = []
+    raw_delta_batches: List[torch.Tensor] = []
+
+    for record_index, record in enumerate(records):
+
+        if "events" not in record:
+            raise ValueError(
+                f"Record {record_index} is missing 'events'."
+            )
+
+        events = record["events"]
+
+        category_ids = [
+            int(event["category_id"])
+            for event in events
+        ]
+
+        raw_delta_hours = [
+            float(event["delta_hours"])
+            for event in events
+        ]
+
+        if len(category_ids) != len(raw_delta_hours):
+            raise ValueError(
+                f"Record {record_index} has inconsistent event lengths."
+            )
+
+        temporal_features = compute_temporal_features_single(
+            category_ids,
+            raw_delta_hours,
+            time_stats,
+        )
+
+        category_batches.append(
+            torch.tensor(
+                category_ids,
+                dtype=torch.long,
+            )
+        )
+
+        temporal_batches.append(
+            temporal_features
+        )
+
+        raw_delta_batches.append(
+            torch.tensor(
+                raw_delta_hours,
+                dtype=torch.float32,
+            )
+        )
+
+    if not category_batches:
+        raise ValueError(
+            "Cannot convert an empty record list to tensors."
+        )
+
+    category_ids_tensor = torch.stack(
+        category_batches
+    ).to(resolved_device)
+
+    temporal_features_tensor = torch.stack(
+        temporal_batches
+    ).to(resolved_device)
+
+    raw_delta_hours_tensor = torch.stack(
+        raw_delta_batches
+    ).to(resolved_device)
+
+    return (
+        category_ids_tensor,
+        temporal_features_tensor,
+        raw_delta_hours_tensor,
+    )
+
+
+def records_to_bucketed_tensors(
+    records: List[Dict[str, Any]],
+    time_stats: Dict[str, float],
+    device: Optional[str | torch.device] = None,
+):
+    """
+    Convert raw records into the tensor inputs expected by
+    v3a_bucketed_recurrence.
+
+    The actual dataset_v3a_bucketed.py exposes:
+
+        compute_reduced_temporal_features_and_buckets_single()
+
+    Returns:
+        tuple:
+            category_ids
+            temporal_features
+            raw_delta_hours
+            recurrence_bucket_ids
+
+    Labels are intentionally excluded because inference does not need them.
+    """
+
+    from ..models.dataset_v3a_bucketed import (
+        compute_reduced_temporal_features_and_buckets_single,
+    )
+
+    resolved_device = resolve_device(device)
+
+    category_batches: List[torch.Tensor] = []
+    temporal_batches: List[torch.Tensor] = []
+    raw_delta_batches: List[torch.Tensor] = []
+    bucket_batches: List[torch.Tensor] = []
+
+    for record_index, record in enumerate(records):
+
+        if "events" not in record:
+            raise ValueError(
+                f"Record {record_index} is missing 'events'."
+            )
+
+        events = record["events"]
+
+        category_ids = [
+            int(event["category_id"])
+            for event in events
+        ]
+
+        raw_delta_hours = [
+            float(event["delta_hours"])
+            for event in events
+        ]
+
+        if len(category_ids) != len(raw_delta_hours):
+            raise ValueError(
+                f"Record {record_index} has inconsistent event lengths."
+            )
+
+        (
+            temporal_features,
+            recurrence_bucket_ids,
+        ) = compute_reduced_temporal_features_and_buckets_single(
+            category_ids,
+            raw_delta_hours,
+            time_stats,
+        )
+
+        category_batches.append(
+            torch.tensor(
+                category_ids,
+                dtype=torch.long,
+            )
+        )
+
+        temporal_batches.append(
+            temporal_features
+        )
+
+        raw_delta_batches.append(
+            torch.tensor(
+                raw_delta_hours,
+                dtype=torch.float32,
+            )
+        )
+
+        bucket_batches.append(
+            recurrence_bucket_ids
+        )
+
+    if not category_batches:
+        raise ValueError(
+            "Cannot convert an empty record list to tensors."
+        )
+
+    category_ids_tensor = torch.stack(
+        category_batches
+    ).to(resolved_device)
+
+    temporal_features_tensor = torch.stack(
+        temporal_batches
+    ).to(resolved_device)
+
+    raw_delta_hours_tensor = torch.stack(
+        raw_delta_batches
+    ).to(resolved_device)
+
+    recurrence_bucket_ids_tensor = torch.stack(
+        bucket_batches
+    ).to(resolved_device)
+
+    return (
+        category_ids_tensor,
+        temporal_features_tensor,
+        raw_delta_hours_tensor,
+        recurrence_bucket_ids_tensor,
+    )
+
+
+# =============================================================================
+# INFERENCE
+# =============================================================================
+
+def run_inference(
+    model,
+    records: List[Dict[str, Any]],
+    time_stats: Dict[str, float],
+    device: Optional[str | torch.device],
+    *,
+    version: str,
+    batch_size: int = 64,
+) -> np.ndarray:
+    """
+    Run neural-model inference.
+
+    Argument order intentionally matches the Step 2 calls:
+
+        run_inference(
+            model,
+            records,
+            time_stats,
+            device,
+            version=version,
+        )
+
+    Returns:
+        1D numpy array of probabilities in exactly the same
+        order as `records`.
+    """
+
+    if version not in MODEL_VERSIONS:
+        raise ValueError(
+            f"Unknown model version: {version}. "
+            f"Expected one of: {MODEL_VERSIONS}"
+        )
+
+    if batch_size <= 0:
+        raise ValueError(
+            f"batch_size must be > 0, got {batch_size}."
+        )
+
+    if len(records) == 0:
+        return np.asarray(
+            [],
+            dtype=np.float32,
+        )
+
+    resolved_device = resolve_device(device)
+
+    # -------------------------------------------------------------------------
+    # Build model inputs using the exact feature implementation for each
+    # model family.
+    # -------------------------------------------------------------------------
+
+    if version == "v3a_bucketed_recurrence":
+
+        tensors = records_to_bucketed_tensors(
+            records,
+            time_stats=time_stats,
+            device=resolved_device,
+        )
+
+    else:
+
+        tensors = records_to_tensors(
+            records,
+            time_stats=time_stats,
+            device=resolved_device,
+        )
+
+    # -------------------------------------------------------------------------
+    # Batched inference
+    # -------------------------------------------------------------------------
+
+    probabilities_all: List[np.ndarray] = []
+
+    with torch.no_grad():
+
+        for start in range(
+            0,
+            len(records),
+            batch_size,
+        ):
+
+            end = min(
+                start + batch_size,
+                len(records),
+            )
+
+            batch = _slice_batch(
+                tensors,
+                start,
+                end,
+            )
+
+            output = _call_model(
+                model,
+                batch,
+                version,
+            )
+
+            # Some implementations may return:
+            #
+            #     (logits, auxiliary_output)
+            #
+            # In that case the first element is the classifier output.
+            if isinstance(output, (tuple, list)):
+
+                if len(output) == 0:
+                    raise RuntimeError(
+                        f"Model '{version}' returned an empty "
+                        f"tuple/list."
+                    )
+
+                output = output[0]
+
+            if not torch.is_tensor(output):
+                raise TypeError(
+                    f"Model '{version}' returned "
+                    f"{type(output)} instead of a torch.Tensor."
+                )
+
+            logits = output
+
+            # Expected binary classifier output:
+            #
+            #     [B]
+            #
+            # or:
+            #
+            #     [B, 1]
+            if logits.ndim == 2 and logits.shape[-1] == 1:
+                logits = logits.squeeze(-1)
+
+            if logits.ndim != 1:
+                raise ValueError(
+                    f"Unexpected model output shape for "
+                    f"{version}: {tuple(logits.shape)}"
+                )
+
+            probabilities = torch.sigmoid(
+                logits
+            )
+
+            probabilities_all.append(
+                probabilities.detach()
+                .cpu()
+                .numpy()
+                .astype(np.float32)
+            )
+
+    probabilities = np.concatenate(
+        probabilities_all,
+        axis=0,
+    )
+
+    if len(probabilities) != len(records):
+        raise RuntimeError(
+            f"Inference output length mismatch for {version}: "
+            f"{len(probabilities)} probabilities for "
+            f"{len(records)} records."
+        )
+
+    return probabilities
+
+
+def _slice_batch(
+    tensors,
+    start: int,
+    end: int,
+):
+    """
+    Slice a tuple/list/dict of tensors along the first dimension.
+    """
+
+    if torch.is_tensor(tensors):
+        return tensors[start:end]
+
+    if isinstance(tensors, tuple):
+        return tuple(
+            _slice_batch(
+                item,
+                start,
+                end,
+            )
+            for item in tensors
+        )
+
+    if isinstance(tensors, list):
+        return [
+            _slice_batch(
+                item,
+                start,
+                end,
+            )
+            for item in tensors
+        ]
+
+    if isinstance(tensors, dict):
+        return {
+            key: _slice_batch(
+                value,
+                start,
+                end,
+            )
+            for key, value in tensors.items()
+        }
+
+    return tensors
+
+
+def _call_model(
+    model,
+    batch,
+    version: str,
+):
+    """
+    Call the model using the actual positional input structure used by
+    the corresponding dataset.
+
+    V2 / V3-A / V3-C:
+        category_ids,
+        temporal_features,
+        raw_delta_hours
+
+    V3-A bucketed:
+        category_ids,
+        temporal_features,
+        raw_delta_hours,
+        recurrence_bucket_ids
+
+    Labels are intentionally not passed to the model.
+    """
+
+    if version == "v3a_bucketed_recurrence":
+
+        if not isinstance(batch, (tuple, list)):
+            raise TypeError(
+                "Bucketed model input must be a tuple/list."
+            )
+
+        if len(batch) != 4:
+            raise ValueError(
+                "Bucketed model expects 4 input tensors "
+                "(category_ids, temporal_features, "
+                "raw_delta_hours, recurrence_bucket_ids), "
+                f"got {len(batch)}."
+            )
+
+        return model(
+            batch[0],
+            batch[1],
+            batch[2],
+            batch[3],
+        )
+
+    if not isinstance(batch, (tuple, list)):
+        raise TypeError(
+            f"Model input for {version} must be a tuple/list."
+        )
+
+    if len(batch) != 3:
+        raise ValueError(
+            f"Model '{version}' expects 3 input tensors "
+            "(category_ids, temporal_features, raw_delta_hours), "
+            f"got {len(batch)}."
+        )
+
+    return model(
+        batch[0],
+        batch[1],
+        batch[2],
+    )
+
+
+# =============================================================================
+# PREDICTION ALIGNMENT
+# =============================================================================
+
+def align_predictions(
+    records: List[Dict[str, Any]],
+    probabilities: np.ndarray,
+) -> List[Dict[str, Any]]:
+    """
+    Attach probabilities to records while preserving record order.
+    """
+
+    probabilities = np.asarray(
+        probabilities,
+        dtype=float,
+    )
+
+    if len(records) != len(probabilities):
+        raise ValueError(
+            "Prediction/record length mismatch: "
+            f"{len(records)} records vs "
+            f"{len(probabilities)} predictions."
+        )
+
+    aligned = []
+
+    for record, probability in zip(
+        records,
+        probabilities,
+    ):
+        row = dict(record)
+        row["prob"] = float(probability)
+        aligned.append(row)
+
+    return aligned
+
+
+# =============================================================================
+# JSONL
+# =============================================================================
+
+def load_jsonl(
+    path: Path,
+) -> List[Dict[str, Any]]:
+    """
+    Load JSONL while preserving file order.
+    """
+
     path = Path(path)
+
     if not path.exists():
-        raise FileNotFoundError(f"Not found: {path}")
-    out = []
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
+        raise FileNotFoundError(
+            f"JSONL file not found: {path}"
+        )
+
+    records: List[Dict[str, Any]] = []
+
+    with path.open(
+        "r",
+        encoding="utf-8",
+    ) as f:
+
+        for line_number, line in enumerate(
+            f,
+            start=1,
+        ):
+
             line = line.strip()
-            if line:
-                out.append(json.loads(line))
-    return out
+
+            if not line:
+                continue
+
+            try:
+                records.append(
+                    json.loads(line)
+                )
+
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Invalid JSON on line "
+                    f"{line_number} of {path}: {exc}"
+                ) from exc
+
+    return records
 
 
-def load_eval_metadata_by_id(path: Path) -> Dict[str, dict]:
-    return {m["sample_id"]: m for m in load_jsonl(path)}
-
-
-def load_counterfactual(path: Path) -> List[dict]:
+def write_jsonl(
+    path: Path,
+    records: List[Dict[str, Any]],
+) -> None:
     """
-    counterfactual_eval.jsonl has a DIFFERENT schema from train/val/test:
-    role="base" rows carry "label"; role="transformed" rows carry
-    "expected_label" instead (the label a correctly-behaving model SHOULD
-    move toward, not a ground-truth training label). dataset.py's
-    validate_record() would reject transformed rows outright (it requires
-    a "label" key). That is a genuine, real schema difference, not a bug
-    to patch around silently — this loader handles it explicitly instead
-    of running these rows through dataset.py's validator.
-
-    Also does its own minimal structural check (25 events, valid
-    category_id range, delta_hours finite/non-negative/non-decreasing)
-    so a malformed row fails loudly here rather than silently in the
-    model, but does NOT require the "label" key to be present.
+    Write records as JSONL.
     """
+
+    path = Path(path)
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    with path.open(
+        "w",
+        encoding="utf-8",
+    ) as f:
+
+        for record in records:
+
+            f.write(
+                json.dumps(
+                    record,
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+
+
+# =============================================================================
+# COUNTERFACTUAL DATA
+# =============================================================================
+
+def load_counterfactual(
+    path: Path,
+) -> List[Dict[str, Any]]:
+    """
+    Load and validate counterfactual evaluation records.
+
+    Required fields:
+        sample_id
+        counterfactual_group_id
+        role
+        transform
+        base_sample_id
+
+    Original file order is preserved.
+    """
+
     rows = load_jsonl(path)
-    for i, r in enumerate(rows):
-        events = r.get("events")
-        if not isinstance(events, list) or len(events) != 25:
-            raise ValueError(f"counterfactual row {i} ({r.get('sample_id')}): expected 25 events.")
-        prev = None
-        for j, e in enumerate(events):
-            if not (0 <= e["category_id"] < 15):
-                raise ValueError(f"counterfactual row {i} event {j}: category_id out of range.")
-            dh = float(e["delta_hours"])
-            if not math.isfinite(dh) or dh < 0:
-                raise ValueError(f"counterfactual row {i} event {j}: delta_hours invalid ({dh}).")
-            if prev is not None and dh < prev:
-                raise ValueError(f"counterfactual row {i} event {j}: delta_hours not non-decreasing.")
-            prev = dh
-        if r["role"] == "base" and "label" not in r:
-            raise ValueError(f"counterfactual row {i}: base row missing 'label'.")
-        if r["role"] == "transformed" and "expected_label" not in r:
-            raise ValueError(f"counterfactual row {i}: transformed row missing 'expected_label'.")
+
+    required_fields = {
+        "sample_id",
+        "counterfactual_group_id",
+        "role",
+        "transform",
+        "base_sample_id",
+    }
+
+    seen_sample_ids = set()
+
+    for index, row in enumerate(rows):
+
+        missing = (
+            required_fields
+            - set(row.keys())
+        )
+
+        if missing:
+            raise ValueError(
+                f"Counterfactual row {index} "
+                f"is missing fields: "
+                f"{sorted(missing)}"
+            )
+
+        sample_id = row["sample_id"]
+
+        if not sample_id:
+            raise ValueError(
+                f"Counterfactual row {index} "
+                f"has an empty sample_id."
+            )
+
+        if sample_id in seen_sample_ids:
+            raise ValueError(
+                f"Duplicate counterfactual "
+                f"sample_id: {sample_id}"
+            )
+
+        seen_sample_ids.add(
+            sample_id
+        )
+
+        if row["role"] not in {
+            "base",
+            "transformed",
+        }:
+            raise ValueError(
+                f"Invalid counterfactual role "
+                f"{row['role']!r} for "
+                f"sample_id={sample_id!r}. "
+                f"Expected 'base' or 'transformed'."
+            )
+
     return rows
 
 
-def write_jsonl(path: Path, rows: List[dict]) -> None:
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+# =============================================================================
+# THRESHOLD UTILITIES
+# =============================================================================
 
-
-def write_json(path: Path, obj) -> None:
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(obj, f, indent=2, ensure_ascii=False, default=str)
-
-
-# ---------------------------------------------------------------------------
-# Model loading + inference  (imports torch / project code lazily, so this
-# module can still be imported by pure-analysis steps that don't need torch)
-# ---------------------------------------------------------------------------
-
-MODEL_VERSIONS = ("v3a", "v3c")
-
-
-def load_model(version: str, checkpoint_path: Path, device=None):
+def get_thresholds(
+    start: float = 0.05,
+    stop: float = 0.95,
+    step: float = 0.01,
+) -> np.ndarray:
     """
-    Returns (model, checkpoint_meta_dict). `checkpoint_meta_dict` excludes
-    the raw state_dict (too large / not useful downstream) but keeps
-    epoch, val_f1, val_threshold, val_precision, val_recall, time_stats,
-    seed, model_version exactly as stored at training time.
+    Return the fixed threshold grid used by Step 2.
     """
-    import torch
 
-    if version == "v3a":
-        from model_v3a import SociaPatternTransformerV3A as ModelClass
-    elif version == "v3c":
-        from model_v3c import SociaPatternTransformerV3C as ModelClass
-    else:
-        raise ValueError(f"Unknown model version: {version}")
+    if step <= 0:
+        raise ValueError(
+            "Threshold step must be > 0."
+        )
 
-    if device is None:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if not 0 <= start <= 1:
+        raise ValueError(
+            "Threshold start must be in [0, 1]."
+        )
 
-    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    model = ModelClass().to(device)
-    model.load_state_dict(ckpt["model_state_dict"])
-    model.eval()
+    if not 0 <= stop <= 1:
+        raise ValueError(
+            "Threshold stop must be in [0, 1]."
+        )
 
-    meta = {k: v for k, v in ckpt.items() if k != "model_state_dict"}
-    return model, meta, device
+    if start > stop:
+        raise ValueError(
+            f"Threshold start ({start}) "
+            f"cannot exceed stop ({stop})."
+        )
 
-
-def records_to_tensors(records: List[dict], time_stats: Dict[str, float], device):
-    """
-    Builds (category_ids, temporal_features, raw_delta_hours) tensors for
-    a list of raw dataset records, using dataset_v2's OWN feature-
-    engineering function unchanged (imported, not reimplemented) so eval
-    features are guaranteed identical to training features.
-    """
-    import torch
-    from dataset_v2 import compute_temporal_features_single
-
-    cat_batch, temp_batch, raw_batch = [], [], []
-    for r in records:
-        events = r["events"]
-        cat_ids = [int(e["category_id"]) for e in events]
-        raw_hours = [float(e["delta_hours"]) for e in events]
-        temp = compute_temporal_features_single(cat_ids, raw_hours, time_stats)
-        cat_batch.append(torch.tensor(cat_ids, dtype=torch.long))
-        temp_batch.append(temp)
-        raw_batch.append(torch.tensor(raw_hours, dtype=torch.float32))
-
-    category_ids = torch.stack(cat_batch).to(device)
-    temporal_features = torch.stack(temp_batch).to(device)
-    raw_delta_hours = torch.stack(raw_batch).to(device)
-    return category_ids, temporal_features, raw_delta_hours
-
-
-def run_inference(model, records: List[dict], time_stats: Dict[str, float], device,
-                   batch_size: int = 128, id_key: str = "sample_id") -> Dict[str, float]:
-    """Returns {sample_id: predicted_probability}. Order of `records` does
-    not matter; results are keyed by id, not position."""
-    import torch
-
-    probs: Dict[str, float] = {}
-    with torch.no_grad():
-        for start in range(0, len(records), batch_size):
-            batch = records[start:start + batch_size]
-            category_ids, temporal_features, raw_delta_hours = records_to_tensors(batch, time_stats, device)
-            logits = model(category_ids, temporal_features, raw_delta_hours, check_finite=True)
-            batch_probs = torch.sigmoid(logits).cpu().tolist()
-            for r, p in zip(batch, batch_probs):
-                probs[r[id_key]] = float(p)
-    return probs
-
-
-# ---------------------------------------------------------------------------
-# Thresholding — mirrors train_v3a.py / train_v3c.py's own sweep exactly,
-# so a val-selected threshold recomputed here is reproducible against what
-# training already selected, not a new/different protocol.
-# ---------------------------------------------------------------------------
-
-def get_thresholds(lo: float = 0.10, hi: float = 0.90, step: float = 0.05) -> List[float]:
-    out = []
-    cur = lo
-    while cur <= hi + 1e-9:
-        out.append(round(cur, 2))
-        cur += step
-    return out
-
-
-def sweep_best_threshold(labels: List[int], probs: List[float], thresholds: List[float]) -> Tuple[float, float, float, float]:
-    """Returns (best_threshold, precision, recall, f1) selecting by F1,
-    exactly mirroring run_validation() in train_v3a.py / train_v3c.py."""
-    from sklearn.metrics import precision_recall_fscore_support
-
-    best_f1, best_t, best_p, best_r = -1.0, 0.5, 0.0, 0.0
-    for t in thresholds:
-        preds = [1 if p >= t else 0 for p in probs]
-        p, r, f1, _ = precision_recall_fscore_support(labels, preds, average="binary", zero_division=0)
-        if f1 > best_f1:
-            best_f1, best_t, best_p, best_r = float(f1), t, float(p), float(r)
-    return best_t, best_p, best_r, best_f1
-
-
-def compute_full_metrics(labels: List[int], probs: List[float], threshold: float) -> dict:
-    from sklearn.metrics import (
-        roc_auc_score, average_precision_score, precision_recall_fscore_support, confusion_matrix,
+    thresholds = np.arange(
+        start,
+        stop + step * 0.5,
+        step,
+        dtype=np.float64,
     )
-    labels_arr = np.array(labels)
-    probs_arr = np.array(probs)
-    preds = (probs_arr >= threshold).astype(int)
 
-    precision, recall, f1, _ = precision_recall_fscore_support(labels_arr, preds, average="binary", zero_division=0)
-    tn, fp, fn, tp = confusion_matrix(labels_arr, preds, labels=[0, 1]).ravel()
+    return np.round(
+        thresholds,
+        decimals=10,
+    )
+
+
+# =============================================================================
+# METRICS
+# =============================================================================
+
+def _binary_confusion_counts(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+) -> Tuple[int, int, int, int]:
+    """
+    Return:
+        TN, FP, FN, TP
+    """
+
+    y_true = np.asarray(
+        y_true,
+        dtype=int,
+    )
+
+    y_pred = np.asarray(
+        y_pred,
+        dtype=int,
+    )
+
+    if len(y_true) != len(y_pred):
+        raise ValueError(
+            f"Length mismatch: "
+            f"y_true={len(y_true)}, "
+            f"y_pred={len(y_pred)}"
+        )
+
+    tn = int(
+        np.sum(
+            (y_true == 0)
+            & (y_pred == 0)
+        )
+    )
+
+    fp = int(
+        np.sum(
+            (y_true == 0)
+            & (y_pred == 1)
+        )
+    )
+
+    fn = int(
+        np.sum(
+            (y_true == 1)
+            & (y_pred == 0)
+        )
+    )
+
+    tp = int(
+        np.sum(
+            (y_true == 1)
+            & (y_pred == 1)
+        )
+    )
+
+    return tn, fp, fn, tp
+
+
+def compute_binary_metrics(
+    y_true: np.ndarray,
+    probabilities: np.ndarray,
+    threshold: float,
+) -> Dict[str, float]:
+    """
+    Compute binary metrics at a fixed threshold.
+    """
+
+    y_true = np.asarray(
+        y_true,
+        dtype=int,
+    )
+
+    probabilities = np.asarray(
+        probabilities,
+        dtype=float,
+    )
+
+    if len(y_true) != len(probabilities):
+        raise ValueError(
+            f"Length mismatch: "
+            f"y_true={len(y_true)}, "
+            f"probabilities={len(probabilities)}"
+        )
+
+    predictions = (
+        probabilities >= threshold
+    ).astype(int)
+
+    tn, fp, fn, tp = (
+        _binary_confusion_counts(
+            y_true,
+            predictions,
+        )
+    )
+
+    precision = (
+        tp / (tp + fp)
+        if tp + fp > 0
+        else 0.0
+    )
+
+    recall = (
+        tp / (tp + fn)
+        if tp + fn > 0
+        else 0.0
+    )
+
+    f1 = (
+        2.0 * precision * recall
+        / (precision + recall)
+        if precision + recall > 0
+        else 0.0
+    )
+
+    accuracy = (
+        (tp + tn) / len(y_true)
+        if len(y_true) > 0
+        else 0.0
+    )
+
+    specificity = (
+        tn / (tn + fp)
+        if tn + fp > 0
+        else 0.0
+    )
 
     return {
-        "n": int(len(labels_arr)),
         "threshold": float(threshold),
-        "roc_auc": float(roc_auc_score(labels_arr, probs_arr)),
-        "pr_auc": float(average_precision_score(labels_arr, probs_arr)),
-        "f1": float(f1),
+        "accuracy": float(accuracy),
         "precision": float(precision),
         "recall": float(recall),
-        "tp": int(tp), "tn": int(tn), "fp": int(fp), "fn": int(fn),
+        "f1": float(f1),
+        "specificity": float(specificity),
+        "tn": int(tn),
+        "fp": int(fp),
+        "fn": int(fn),
+        "tp": int(tp),
     }
 
 
-def align_predictions(records: List[dict], probs: Dict[str, float], id_key: str = "sample_id",
-                       label_key: str = "label") -> Tuple[List[int], List[float], List[str]]:
-    """Returns (labels, probs, sample_ids) in a fixed, shared order derived
-    from `records` — use the SAME records list for every model being
-    compared so labels/order line up identically across baseline/v3a/v3c."""
-    labels, plist, ids = [], [], []
-    for r in records:
-        sid = r[id_key]
-        if sid not in probs:
-            raise KeyError(f"No prediction for {sid}")
-        labels.append(int(r[label_key]))
-        plist.append(probs[sid])
-        ids.append(sid)
-    return labels, plist, ids
+def sweep_best_threshold(
+    y_true: np.ndarray,
+    probabilities: np.ndarray,
+    thresholds: Optional[np.ndarray] = None,
+) -> Tuple[float, Dict[str, float]]:
+    """
+    Find the threshold maximizing F1.
+
+    Ties are resolved in favor of the lower threshold.
+    """
+
+    if thresholds is None:
+        thresholds = get_thresholds()
+
+    best_threshold = None
+    best_metrics = None
+
+    for threshold in thresholds:
+
+        metrics = compute_binary_metrics(
+            y_true,
+            probabilities,
+            float(threshold),
+        )
+
+        if (
+            best_metrics is None
+            or metrics["f1"] > best_metrics["f1"]
+            or (
+                metrics["f1"] == best_metrics["f1"]
+                and float(threshold)
+                < float(best_threshold)
+            )
+        ):
+            best_threshold = float(
+                threshold
+            )
+
+            best_metrics = metrics
+
+    if (
+        best_threshold is None
+        or best_metrics is None
+    ):
+        raise RuntimeError(
+            "Threshold sweep produced "
+            "no candidate threshold."
+        )
+
+    return (
+        best_threshold,
+        best_metrics,
+    )
+
+
+def compute_full_metrics(
+    y_true: np.ndarray,
+    probabilities: np.ndarray,
+    threshold: float,
+) -> Dict[str, float]:
+    """
+    Compatibility wrapper for evaluation scripts.
+    """
+
+    return compute_binary_metrics(
+        y_true=y_true,
+        probabilities=probabilities,
+        threshold=threshold,
+    )
+
+
+# =============================================================================
+# JSON
+# =============================================================================
+
+def write_json(
+    path: Path,
+    data: Any,
+) -> None:
+    """
+    Write JSON.
+    """
+
+    path = Path(path)
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    with path.open(
+        "w",
+        encoding="utf-8",
+    ) as f:
+
+        json.dump(
+            data,
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+
+# =============================================================================
+# EVALUATION METADATA
+# =============================================================================
+
+def load_eval_metadata_by_id(
+    path: Path,
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Load evaluation metadata indexed by sample_id.
+    """
+
+    rows = load_jsonl(path)
+
+    result: Dict[
+        str,
+        Dict[str, Any]
+    ] = {}
+
+    for row in rows:
+
+        sample_id = row.get(
+            "sample_id"
+        )
+
+        if sample_id is None:
+            raise ValueError(
+                "Evaluation metadata row "
+                "is missing sample_id."
+            )
+
+        if sample_id in result:
+            raise ValueError(
+                "Duplicate sample_id in "
+                f"evaluation metadata: "
+                f"{sample_id}"
+            )
+
+        result[sample_id] = row
+
+    return result

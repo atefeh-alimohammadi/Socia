@@ -36,7 +36,7 @@ from typing import Dict, List, Optional, Tuple
 import torch
 from torch.utils.data import Dataset
 
-from dataset import (
+from .dataset import (
     DEFAULT_DATA_DIR,
     EXPECTED_WINDOW_LENGTH,
     NUM_CATEGORIES,
@@ -45,12 +45,12 @@ from dataset import (
     validate_dataset,
 )
 
-from dataset_v2 import (
+from .dataset_v2 import (
     normalize_component,
     fit_time_normalization_v2,
 )
 
-from model_v3a_bucketed_recurrence import (
+from .model_v3a_bucketed_recurrence import (
     NUM_RECURRENCE_BUCKETS,
     recurrence_bucket_id,
 )
