@@ -2,8 +2,11 @@
 
 ## Evaluation protocol
 
-The final evaluation separates primary benchmark performance from
-threshold-dependent diagnostics and controlled intervention experiments.
+The final evaluation separates three types of analysis:
+
+1. **Primary benchmark performance** — threshold-independent ranking metrics on the frozen V2 test set.
+2. **Threshold-dependent diagnostics** — classification metrics at a threshold selected on validation data only.
+3. **Controlled interventions** — ablations, permutations, and counterfactuals designed to test model dependence on recurrence-related information.
 
 ```mermaid
 flowchart LR
@@ -24,34 +27,27 @@ flowchart LR
 
 ### Frozen test set
 
-All V2-family models and the timing+category baseline are evaluated on the
-same frozen V2 test set:
+All V2-family models and the timing + category baseline are evaluated on the same frozen V2 test set:
 
 * **2,000 examples**
 * **1,000 positive**
 * **1,000 negative**
 
-The identity and ordering of the frozen test examples were verified
-programmatically rather than assumed.
+The identity and ordering of the test examples were verified programmatically rather than assumed.
 
-The historical V1 model is **not** included in this direct comparison because
-it was trained and evaluated on the earlier V1 benchmark.
+The historical V1 model is **not** included in this direct comparison because it was trained and evaluated on the earlier V1 benchmark.
 
 ### Threshold selection
 
-For threshold-dependent metrics, the classification threshold is selected
-using the validation split only.
+For threshold-dependent metrics, the classification threshold is selected using the validation split only.
 
-The training/evaluation protocol sweeps thresholds from **0.10 to 0.90 in
-steps of 0.05** and selects the threshold maximizing validation F1.
+The evaluation protocol sweeps thresholds from **0.10 to 0.90 in steps of 0.05** and selects the threshold that maximizes validation F1.
 
 That threshold is then frozen and applied to the test set.
 
 The test labels are never used to select the official threshold.
 
-For V3-A and V3-C, the final evaluation pipeline independently regenerated
-validation predictions and recovered the same stored threshold and validation
-F1 as the training checkpoints, to four decimal places.
+For V3-A and V3-C, the final evaluation pipeline independently regenerated validation predictions and recovered the same stored threshold and validation F1 as the training checkpoints, to four decimal places.
 
 ### Primary metrics
 
@@ -60,10 +56,9 @@ The primary model-comparison metrics are:
 * **ROC-AUC**
 * **PR-AUC**
 
-These metrics do not depend on selecting a particular classification
-threshold and are therefore the main basis for comparing models.
+These metrics are threshold-independent and therefore provide the main basis for comparing models.
 
-Threshold-dependent metrics are reported as secondary results:
+Threshold-dependent metrics are reported as secondary diagnostics:
 
 * F1
 * precision
@@ -71,19 +66,15 @@ Threshold-dependent metrics are reported as secondary results:
 * accuracy
 * confusion matrix
 
-A separate **best-test-F1 threshold** may be reported as a diagnostic, but it
-is not treated as a primary generalization result because selecting it uses the
-test labels.
+A separate **best-test-F1 threshold** may be reported for diagnostic purposes, but it is not treated as a primary generalization result because selecting it uses the test labels.
 
 ---
 
 # Baseline reproducibility
 
-The timing+category baseline is refit from scratch on the training split during
-the final evaluation run.
+The timing + category baseline is refit from scratch on the training split during the final evaluation run.
 
-An earlier independent run using the same feature construction, classifier,
-and `random_state=0` produced:
+An earlier independent run using the same feature construction, classifier, and `random_state=0` produced:
 
 * threshold: **0.35**
 * F1: **0.7615**
@@ -95,13 +86,9 @@ The final official run produced:
 * F1: **0.7622**
 * ROC-AUC: **0.8069**
 
-The small difference was investigated and is attributed to floating-point
-non-determinism in the histogram-binning implementation of
-`HistGradientBoostingClassifier`, which can vary across platforms,
-threading configurations, or library versions despite a fixed random seed.
+The small difference was investigated and is attributed to floating-point non-determinism in the histogram-binning implementation of `HistGradientBoostingClassifier`, which can vary across platforms, threading configurations, or library versions despite a fixed random seed.
 
-The dataset, feature construction, model configuration, and evaluation
-protocol were unchanged.
+The dataset, feature construction, model configuration, and evaluation protocol were unchanged.
 
 The values reported below are from the final official evaluation run.
 
@@ -109,7 +96,7 @@ The values reported below are from the final official evaluation run.
 
 # Final V2 benchmark results
 
-The following models were evaluated on the same frozen V2 test set:
+The following approaches were evaluated on the same frozen V2 test set:
 
 * Timing + category baseline
 * V2
@@ -127,7 +114,7 @@ All values are taken from the final evaluation outputs.
 | V3-C                       | 2,000 |      0.40 |     0.770 |     0.716 |     0.736 |     0.659 |     0.834 |     0.702 |
 | V3-A Bucketed              | 2,000 |      0.45 |     0.776 |     0.730 |     0.720 |     0.677 |     0.769 |     0.701 |
 
-Confusion matrices for the primary models:
+Confusion matrices:
 
 | Model                      |  TP |  TN |  FP |  FN |
 | -------------------------- | --: | --: | --: | --: |
@@ -145,35 +132,31 @@ Confusion matrices for the primary models:
 
 ## Interpretation
 
-The timing+category baseline has the highest ROC-AUC and PR-AUC on the final
-V2 benchmark.
+The timing + category baseline achieves the highest ROC-AUC and PR-AUC on the final V2 benchmark.
 
-The neural models therefore do **not** outperform the aggregate baseline on
-the primary threshold-independent metrics.
+The neural models therefore **do not outperform the aggregate baseline on the primary threshold-independent metrics**.
 
-At the same time, the neural variants exhibit different precision/recall
-trade-offs. For example, V3-A has substantially fewer false positives than
-the baseline at its validation-selected threshold, but also substantially
-lower recall.
+The models nevertheless exhibit different precision/recall trade-offs. For example, V3-A produces substantially fewer false positives than the baseline at its validation-selected threshold, but this comes with substantially lower recall.
 
-The V3-C ablation has the highest F1 among the neural variants at its official
-threshold, while the bucketed model has the highest ROC-AUC and PR-AUC among
-the neural variants. These are different metrics and should not be collapsed
-into a single overall ranking.
+Among the neural variants:
 
-The appropriate conclusion is therefore that the neural architectures remain
-competitive but do not establish an advantage over the simpler
-timing/category representation on this benchmark.
+* **V3-C** has the highest F1 at its official threshold.
+* **V3-A Bucketed** has the highest ROC-AUC and PR-AUC.
+* **V3-A** has the highest precision and accuracy among the neural variants.
+
+These metrics answer different questions and should not be collapsed into a single overall ranking.
+
+The appropriate conclusion is therefore:
+
+> The neural architectures provide competitive sequence-modeling baselines, but the current experiments do not establish an advantage over the simpler timing + category representation on this benchmark.
 
 ---
 
 # Negative-subtype analysis
 
-The subtype analysis below uses the final frozen V2 test set and the official
-validation-selected thresholds.
+The subtype analysis uses the final frozen V2 test set and the official validation-selected thresholds.
 
-It focuses on the baseline, V3-A, and V3-C because these models share the
-historical subtype-analysis pipeline used during the main model experiments.
+It focuses on the timing + category baseline, V3-A, and V3-C because these models share the subtype-analysis pipeline used during the main model experiments.
 
 | Subtype                      |     N | Baseline FPR | V3-A FPR | V3-C FPR |
 | ---------------------------- | ----: | -----------: | -------: | -------: |
@@ -187,51 +170,39 @@ historical subtype-analysis pipeline used during the main model experiments.
 
 ![Subtype false-positive rates](figures/fig2_subtype_fp_rate.png)
 
-V3-A has a lower false-positive rate than the baseline on every listed
-negative subtype, with an exact tie on `timing_matched`.
+V3-A has a lower false-positive rate than the baseline on every listed negative subtype, with an exact tie on `timing_matched`.
 
-The largest absolute reductions occur on:
+The largest absolute reductions are observed for:
 
 * `category_identity`: 0.700 → 0.500
 * `pure_background`: 0.450 → 0.220
 * `order_permutation`: 0.915 → 0.785
 
-V3-C also reduces false positives on most subtypes, but its
-`timing_matched` FPR is higher than the baseline:
+V3-C also reduces false positives on most subtypes, but its `timing_matched` FPR is higher than the baseline:
 
 **0.441 vs. 0.355.**
 
-These subtype differences show that aggregate performance can hide meaningful
-differences in where models make their errors.
+These differences show that aggregate benchmark metrics can hide meaningful differences in where models make their errors.
 
-However, the lower false-positive rates of the neural models do not translate
-into better overall ranking performance because they are accompanied by lower
-positive recall at the selected thresholds.
-
-In particular:
+However, the lower false-positive rates of the neural models do not translate into better overall ranking performance because they are accompanied by lower positive recall at the selected thresholds:
 
 * baseline recall: **0.899**
 * V3-A recall: **0.779**
 * V3-C recall: **0.834**
 
-Subtype analysis therefore provides a more detailed description of model
-behavior, rather than evidence of an overall model advantage.
+Subtype analysis therefore provides a more detailed description of model behavior rather than evidence of an overall model advantage.
 
 ---
 
 # Recurrence-representation ablations
 
-The final evaluation includes controlled interventions targeting the
-recurrence-specific representations used by the V2-family models.
+The final evaluation includes controlled interventions targeting recurrence-related representations used by the V2-family models.
 
-These experiments are especially important because aggregate benchmark
-performance alone does not establish whether the models rely on the intended
-recurrence information.
+These experiments are important because aggregate benchmark performance alone does not establish whether a model actually depends on the representations intended to encode recurrence.
 
 ## Option A — no-prior representation
 
-The explicit same-category recurrence representation is replaced with a
-no-prior representation at test time.
+The explicit same-category recurrence representation is replaced with a no-prior representation at test time.
 
 The models are **not retrained** after this intervention.
 
@@ -243,15 +214,13 @@ The models are **not retrained** after this intervention.
 | V3-A  |   0.7738 |   0.6520 | -0.1218 |
 | V3-C  |   0.7698 |   0.6526 | -0.1172 |
 
-The ranking performance drops substantially for all three models.
+Ranking performance drops substantially for all three models.
 
-The official-threshold F1 becomes zero for all three because the intervention
-also shifts the score distribution substantially downward. This does **not**
-mean that all ranking information has disappeared; after selecting a
-test-derived diagnostic threshold, non-zero F1 can still be obtained.
+The official-threshold F1 becomes zero for all three because the intervention also shifts the score distribution substantially downward.
 
-The main evidence from this experiment is therefore the degradation in
-ranking metrics, not the zero F1 at the original threshold.
+This does **not** mean that all ranking information has disappeared. A test-derived diagnostic threshold can still recover non-zero F1, but such a threshold is not a valid primary evaluation.
+
+The main evidence from this intervention is therefore the degradation in ranking metrics rather than the zero F1 at the original threshold.
 
 ### Probability shifts
 
@@ -261,12 +230,9 @@ ranking metrics, not the zero F1 at the original threshold.
 | V3-A  |            -0.4556 |  -0.4764 |                  0.9975 |
 | V3-C  |            -0.4088 |  -0.4238 |                  0.9875 |
 
-The strong and consistent downward shifts show that the trained models make
-substantial use of the recurrence-related representation supplied at
-inference time.
+The strong and consistent downward shifts show that the trained models make substantial use of the recurrence-related representation supplied at inference time.
 
-This is evidence of **representation dependence**, not proof that the models
-have learned a validated concept of behavioral recurrence.
+This is evidence of **representation dependence**, not proof that the models have learned a validated concept of behavioral recurrence.
 
 ---
 
@@ -278,8 +244,7 @@ For the continuous V2-family models, the pair
 
 is globally shuffled across test events.
 
-This preserves the approximate marginal distribution of the two features while
-destroying their original event-level alignment.
+This preserves the approximate marginal distribution of the two features while disrupting their original event-level alignment.
 
 ### ROC-AUC
 
@@ -289,20 +254,15 @@ destroying their original event-level alignment.
 | V3-A  |   0.7738 |   0.5142 | -0.2596 |
 | V3-C  |   0.7698 |   0.5508 | -0.2190 |
 
-The substantial degradation, particularly toward chance-level ROC-AUC, suggests
-that the models depend not only on the marginal presence of recurrence
-features but also on where those features occur within the event sequence.
+The substantial degradation, particularly toward chance-level ROC-AUC, suggests that the models depend not only on the marginal presence of recurrence features but also on their event-level alignment.
 
-Again, this is a model-sensitivity result. It does not independently establish
-that the learned representation corresponds to a validated behavioral concept.
+Again, this is a model-sensitivity result. It does not independently establish that the learned representation corresponds to a validated behavioral concept.
 
 ---
 
 ## Bucketed recurrence permutation
 
-The bucketed model uses a discrete recurrence representation, so its
-corresponding intervention globally permutes the recurrence bucket IDs rather
-than the continuous feature pair.
+The bucketed model uses a discrete recurrence representation, so its corresponding intervention globally permutes the recurrence bucket IDs rather than the continuous feature pair.
 
 | Model         | Original ROC-AUC | Bucket-permuted ROC-AUC |       Δ |
 | ------------- | ---------------: | ----------------------: | ------: |
@@ -310,22 +270,17 @@ than the continuous feature pair.
 
 The degradation is smaller than for the continuous-feature interventions.
 
-This suggests that the bucketed model retains some predictive information
-under the intervention, but the experiment does not establish why the
-difference occurs.
+This indicates that the bucketed model retains more predictive performance under this particular intervention, but the experiment does not establish why.
 
-The bucketed and continuous interventions should therefore not be interpreted
-as perfectly identical experiments.
+The bucketed and continuous interventions should therefore not be interpreted as perfectly equivalent experiments.
 
 ---
 
 # Counterfactual analysis
 
-A separate counterfactual experiment was conducted on **300 genuine positive
-test examples**.
+A separate counterfactual experiment was conducted on **300 genuine positive test examples**.
 
-Each intervention modifies one aspect of the sequence while leaving the
-remaining information as stable as possible.
+Each intervention modifies one aspect of the sequence while keeping the remaining information as stable as possible.
 
 The evaluated transformations are:
 
@@ -351,27 +306,20 @@ The measured quantity is the change in predicted probability.
 
 ## Order permutation
 
-The baseline's exactly zero response is expected because none of its features
-encode event order.
+The baseline's exactly zero response is expected because none of its features encode event order.
 
 V3-A and V3-C show near-chance expected-direction rates:
 
 * V3-A: **48.3%**
 * V3-C: **53.3%**
 
-The mean probability changes are also extremely small.
+Their mean probability changes are also extremely small.
 
-This means the current counterfactual experiment does not provide evidence of
-strong, reliable output-level sensitivity to canonical event order.
+The current counterfactual experiment therefore does **not** provide evidence of strong, reliable output-level sensitivity to canonical event order.
 
-This is particularly informative for V3-A because its architecture explicitly
-contains a learned event-order embedding.
+This is particularly informative for V3-A because its architecture explicitly contains a learned order embedding.
 
-However, the result does not prove that order information is unused internally.
-It only shows that this particular intervention did not produce a clear,
-directionally consistent output response.
-
-![Counterfactual probability shifts](figures/fig3_counterfactual_shift.png)
+However, the result does not prove that order information is unused internally. It only shows that this particular intervention did not produce a clear, directionally consistent output response.
 
 ## Timestamp collapse
 
@@ -385,29 +333,23 @@ V3-A and V3-C show larger changes:
 * V3-A: **-0.0536**, 61.0%
 * V3-C: **-0.0200**, 63.7%
 
-This provides stronger evidence of output sensitivity to temporal information
-than the order-permutation intervention.
+This provides stronger evidence of output sensitivity to temporal information than the order-permutation intervention.
 
-The effect is nevertheless modest and does not establish that the models have
-learned the intended recurrence concept.
+The effect remains modest and does not establish that the models have learned the intended recurrence concept.
 
 ## Identity substitution
 
-All three models show a substantial probability decrease, with approximately
-82% of examples moving in the expected direction.
+All three models show a substantial probability decrease, with approximately 82% of examples moving in the expected direction.
 
-However, this intervention changes category composition, which the baseline
-explicitly represents through category counts.
+However, this intervention changes category composition, which the baseline explicitly represents through category counts.
 
-The similar response across the baseline and neural models therefore makes
-this a weak test of sequence-specific reasoning.
+The similar response across the baseline and neural models therefore makes this a weak test of sequence-specific reasoning.
 
 ---
 
 # Recurrence-count analysis
 
-Positive test examples are grouped by `n_occ_intended`, the number of genuine
-recurrence sites in each example.
+Positive test examples are grouped by `n_occ_intended`, the number of genuine recurrence sites in each example.
 
 | `n_occ_intended` |   N | Baseline mean probability | Baseline recall | V3-A mean probability | V3-A recall | V3-C mean probability | V3-C recall |
 | ---------------: | --: | ------------------------: | --------------: | --------------------: | ----------: | --------------------: | ----------: |
@@ -417,30 +359,23 @@ recurrence sites in each example.
 
 ![Recurrence-count vs. predicted probability](figures/fig4_recurrence_probability.png)
 
-All three models show increasing mean predicted probability and recall across
-the three recurrence-count groups.
+All three models show increasing mean predicted probability and recall across the three recurrence-count groups.
 
-Spearman ρ is 1.0 for each model, but this is based on only three aggregate
-points and is therefore descriptive rather than inferential.
+Spearman ρ is 1.0 for each model, but this is based on only three aggregate points and is therefore descriptive rather than inferential.
 
-The qualitative trend is compatible with the models responding more strongly
-to examples containing more recurrence structure.
+The qualitative trend is compatible with the models responding more strongly to examples containing more recurrence structure.
 
-However, the same trend appears in the aggregate baseline, which has no
-explicit representation of "the same pattern repeating."
+However, the same trend appears in the aggregate baseline, which has no explicit representation of "the same pattern repeating."
 
-More recurrence sites also change simpler statistics such as event density,
-category frequency, and temporal structure.
+More recurrence sites also change simpler statistics such as event density, category frequency, and temporal structure.
 
-The recurrence-count analysis therefore does not establish that the neural
-models have learned a recurrence-specific mechanism.
+The recurrence-count analysis therefore does not establish that the neural models have learned a recurrence-specific mechanism.
 
 ---
 
 # Error analysis
 
-The error analysis examines where false positives and false negatives
-concentrate under each model's official validation-selected threshold.
+The error analysis examines where false positives and false negatives concentrate under each model's official validation-selected threshold.
 
 ![Error breakdown by subtype](figures/fig5_error_breakdown.png)
 
@@ -455,16 +390,11 @@ concentrate under each model's official validation-selected threshold.
 | `boundary_tight_burst`       |     5.4% |  3.1% |  3.9% |
 | `boundary_single_occurrence` |     3.7% |  1.4% |  2.3% |
 
-`order_permutation` is the largest source of false positives for all three
-models.
+`order_permutation` is the largest source of false positives for all three models.
 
-This is consistent with the counterfactual analysis: the models do not
-reliably reject a sequence solely because its internal event order has been
-permuted when other timing and category information remains similar.
+This is consistent with the counterfactual analysis: the models do not reliably reject a sequence solely because its internal event order has been permuted when other timing and category information remains similar.
 
-The distribution should be interpreted together with the subtype counts and
-FPR table above; a large share of false positives does not necessarily mean
-that a subtype has the highest intrinsic error rate.
+The distribution should be interpreted together with subtype counts and FPRs. A large share of false positives does not necessarily mean that a subtype has the highest intrinsic error rate.
 
 ## False negatives
 
@@ -474,22 +404,17 @@ that a subtype has the highest intrinsic error rate.
 |                3 |    17.8% | 28.1% | 23.5% |
 |                4 |     5.9% |  4.5% |  4.8% |
 
-Most false negatives for every model come from examples containing exactly
-two recurrence sites.
+Most false negatives for every model come from examples containing exactly two recurrence sites.
 
-This is the minimum number of sites required by the positive-class definition
-and therefore represents the least redundant form of a positive example.
+This is the minimum number of sites required by the positive-class definition and therefore represents the least redundant form of a positive example.
 
-The result is consistent with a general increase in detectability as
-recurrence becomes more frequent, but it does not by itself identify the
-mechanism responsible.
+The result is consistent with a general increase in detectability as recurrence becomes more frequent, but it does not by itself identify the mechanism responsible.
 
 ---
 
 # Zero-shot LLM reference: Qwen2.5-7B
 
-A separate zero-shot experiment evaluated **Qwen2.5-7B** on the same frozen
-2,000-example V2 test set.
+A separate zero-shot experiment evaluated **Qwen2.5-7B** on the same frozen 2,000-example V2 test set.
 
 The experiment used:
 
@@ -500,8 +425,7 @@ The experiment used:
 * no few-shot examples;
 * no prompt optimization.
 
-It is therefore a single model-and-prompt reference experiment, not a
-benchmark of LLMs as a class.
+It is therefore a **single model-and-prompt reference experiment**, not a benchmark of LLMs as a class.
 
 | Metric         |            Value |
 | -------------- | ---------------: |
@@ -519,14 +443,11 @@ benchmark of LLMs as a class.
 
 The model predicted the positive class for **1,982 of 2,000 examples**.
 
-Because the benchmark is exactly balanced, this produces accuracy only slightly
-above the 0.500 accuracy of a constant-positive predictor.
+Because the benchmark is exactly balanced, this produces accuracy only slightly above the 0.500 accuracy of a constant-positive predictor.
 
-The ROC-AUC of **0.521** likewise indicates that the confidence ranking was
-close to chance-level discrimination on this particular benchmark.
+The ROC-AUC of **0.521** likewise indicates that the confidence ranking was close to chance-level discrimination under this particular configuration.
 
-This result establishes the behavior of this specific zero-shot
-configuration. It does not establish that:
+This result establishes the behavior of this specific zero-shot setup. It does **not** establish that:
 
 * LLMs cannot solve the task;
 * Qwen2.5-7B lacks the underlying capability;
@@ -540,8 +461,7 @@ Prompt sensitivity and additional LLMs were not evaluated.
 
 # V1 historical evaluation
 
-V1 results are retained separately because they belong to a different
-benchmark generation and label construction.
+V1 results are retained separately because they belong to a different benchmark generation and label construction.
 
 The final V1 checkpoint achieved on the original V1 test set:
 
@@ -556,12 +476,9 @@ The final V1 checkpoint achieved on the original V1 test set:
 
 These numbers are **not directly comparable with the V2-family results above**.
 
-The V1 benchmark was subsequently audited and found to contain substantial
-shortcut and label-construction issues. The redesign into V2 was motivated in
-part by those findings.
+The V1 benchmark was subsequently audited and found to contain substantial shortcut and label-construction issues. The redesign into V2 was motivated in part by those findings.
 
-V1 is therefore included as development history rather than as another model
-in the final V2 leaderboard.
+V1 is therefore included as development history rather than as another model in the final V2 leaderboard.
 
 ---
 
@@ -571,66 +488,57 @@ The final experiments support several bounded conclusions.
 
 ### 1. Aggregate timing and category information remains highly predictive
 
-The timing+category baseline reaches approximately **0.81 ROC-AUC** on V2.
+The timing + category baseline reaches approximately **0.81 ROC-AUC** on V2.
 
-The benchmark is therefore not free of aggregate temporal or category cues.
+The benchmark therefore retains substantial predictive information in aggregate temporal and category features.
 
 ### 2. The neural models do not establish a performance advantage
 
 None of the V2-family neural models exceeds the baseline on ROC-AUC or PR-AUC.
 
-The results therefore do not support claiming that the current neural
-architectures are better recurrence detectors than the simpler baseline.
+The results therefore do not support claiming that the current neural architectures are better recurrence detectors than the simpler aggregate baseline.
 
 ### 3. Neural predictions depend strongly on recurrence representations
 
-Removing or disrupting recurrence-specific representations causes substantial
-performance degradation.
+Removing or disrupting recurrence-specific representations causes substantial degradation in ranking performance.
 
 This is evidence that those representations matter to the trained models.
 
-It is not, by itself, evidence of psychologically valid recurrence
-understanding.
+It is not, by itself, evidence of psychologically valid recurrence understanding.
 
 ### 4. Reliable order sensitivity remains unresolved
 
-The order-permutation counterfactual produces near-chance directional changes
-for V3-A and V3-C.
+The order-permutation counterfactual produces near-chance directional changes for V3-A and V3-C.
 
-Despite V3-A containing an explicit learned order embedding, this experiment
-does not show a strong output-level response to breaking canonical order.
+Despite V3-A containing an explicit learned order embedding, this experiment does not show a strong output-level response to breaking canonical order.
 
 ### 5. More recurrence sites correlate with higher predicted probability
 
-All evaluated models show increasing scores and recall as the number of
-intended recurrence sites increases.
+All evaluated models show increasing scores and recall as the number of intended recurrence sites increases.
 
-Because the aggregate baseline exhibits the same trend, this result cannot
-separate recurrence-specific modeling from simpler correlated cues.
+Because the aggregate baseline exhibits the same trend, this result cannot distinguish recurrence-specific modeling from simpler correlated cues.
 
 ### 6. The zero-shot LLM experiment is a single reference point
 
-Qwen2.5-7B, under the evaluated prompt, behaves close to a constant-positive
-classifier on this benchmark.
+Qwen2.5-7B, under the evaluated prompt, behaves close to a constant-positive classifier on this benchmark.
 
-This is informative about that specific configuration but is not evidence
-about LLMs generally.
+This is informative about that specific configuration but is not evidence about LLMs generally.
 
 ---
 
 # Evaluation scope
 
-The evaluation establishes empirical properties of these implementations on a
-controlled synthetic benchmark.
+The evaluation establishes empirical properties of these implementations on a controlled synthetic benchmark.
 
-It does not establish:
+It does **not** establish:
 
 * validity on real-world behavioral data;
 * clinical or psychological validity;
 * causal understanding of behavioral recurrence;
-* superiority over production's deterministic 3+ observation rule;
+* superiority over Socia's production deterministic 3+ observation rule;
 * generalization to human behavioral patterns;
 * general LLM capability on recurrence detection.
 
-The research module remains an offline experimental system. Its results do not
-currently feed Socia's production memory or Journey-generation pipeline.
+The research module remains an **offline experimental system**. Its results do not currently feed Socia's production memory or Journey-generation pipeline.
+
+Any future connection to production would require additional validation and explicit acceptance criteria before a research model could reasonably be considered for production use.
