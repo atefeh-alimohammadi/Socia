@@ -125,11 +125,11 @@ Confusion matrices:
 | V3-A Bucketed              | 769 | 633 | 367 | 231 |
 
 
-![Overall comparison](ml/eval/eval_outputs/figures/fig1_overall_comparison.png)
+![Overall comparison](../eval/eval_outputs/figures/fig1_overall_comparison.png)
 
-![Confusion matrices](ml/eval/eval_outputs/figures/fig6_confusion_matrices.png)
+![Confusion matrices](../eval/eval_outputs/figures/fig6_confusion_matrices.png)
 
-![Accuracy comparison](ml/eval/eval_outputs/figures/fig7_accuracy_comparison.png)
+![Accuracy comparison](../eval/eval_outputs/figures/fig7_accuracy_comparison.png)
 
 
 
@@ -171,7 +171,7 @@ It focuses on the timing + category baseline, V3-A, and V3-C because these model
 | `boundary_single_occurrence` |   200 |        0.085 |    0.025 |    0.050 |
 | `positive` — recall          | 1,000 |        0.899 |    0.779 |    0.834 |
 
-![Subtype false-positive rates](ml/eval/eval_outputs/figures/fig2_subtype_fp_rate.png)
+![Subtype false-positive rates](../eval/eval_outputs/figures/fig2_subtype_fp_rate.png)
 
 V3-A has a lower false-positive rate than the baseline on every listed negative subtype, with an exact tie on `timing_matched`.
 
@@ -305,7 +305,7 @@ The measured quantity is the change in predicted probability.
 |                         | V3-A     |            -0.1072 |                   82.7% |
 |                         | V3-C     |            -0.0993 |                   82.0% |
 
-![Counterfactual probability shifts](ml/eval/eval_outputs/figures/fig3_counterfactual_shift.png)
+![Counterfactual probability shifts](../eval/eval_outputs/figures/fig3_counterfactual_shift.png)
 
 ## Order permutation
 
@@ -360,7 +360,7 @@ Positive test examples are grouped by `n_occ_intended`, the number of genuine re
 |                3 | 360 |                     0.695 |           0.950 |                 0.628 |       0.828 |                 0.628 |       0.892 |
 |                4 | 153 |                     0.743 |           0.961 |                 0.708 |       0.935 |                 0.709 |       0.948 |
 
-![Recurrence-count vs. predicted probability](ml/eval/eval_outputs/figures/fig4_recurrence_probability.png)
+![Recurrence-count vs. predicted probability](../eval/eval_outputs/figures/fig4_recurrence_probability.png)
 
 All three models show increasing mean predicted probability and recall across the three recurrence-count groups.
 
@@ -381,7 +381,7 @@ The recurrence-count analysis therefore does not establish that the neural model
 The error analysis examines where false positives and false negatives concentrate under each model's official validation-selected threshold.
 
 
-![Error breakdown by subtype](ml/eval/eval_outputs/figures/fig5_error_breakdown.png)
+![Error breakdown by subtype](../eval/eval_outputs/figures/fig5_error_breakdown.png)
 
 
 ## False positives
