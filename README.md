@@ -2,11 +2,6 @@
 
 **A local-LLM companion that remembers, notices recurring communication patterns, and turns the ones you choose into adaptive multi-day Journeys.**
 
-<p align="center">
-  <img src="docs/screenshots/homePage.png" alt="Socia dashboard showing active Journey, recent conversations, progress and profile" width="760">
-  <br><sub>Working prototype (v0.1) running locally with a demo account.</sub>
-</p>
-
 ## Why Socia?
 
 Social interaction is a part of everyday life, but it is not equally easy for everyone. Some people struggle with social anxiety, low confidence, overthinking, fear of judgment, difficulty expressing themselves, conflict avoidance, or simply not knowing how to handle certain social situations. These difficulties can show up repeatedly in everyday conversations, relationships, presentations, work, or other social situations.
@@ -77,32 +72,9 @@ flowchart LR
 ```
 
 1. **Talk.** Chat with a companion personalized by what it has learned about you. Its tone softens or sharpens based on your feedback.
-
-   <p align="center">
-     <img src="docs/screenshots/chatPage.png" alt="Socia chat showing a conversation with the companion and per-message feedback controls" width="640">
-     <br><sub>Chat with per-reply feedback.</sub>
-   </p>
-
 2. **It notices.** Each message is analyzed in the background for emotions, behavior tags and entities. A behavior observed at least three times can be promoted to a pattern, linked to the moments that support it.
-
-   <p align="center">
-     <img src="docs/screenshots/progressPage2.png" alt="Socia progress page showing recent mood and detected behavioral patterns" width="640">
-     <br><sub>Extracted mood signals and candidate patterns from conversation history.</sub>
-   </p>
-
 3. **You decide.** Patterns are offered, never imposed. Start a Journey from one, or don't.
-
-   <p align="center">
-     <img src="docs/screenshots/journeysPage2.png" alt="Socia Journeys page showing active, paused and completed Journeys" width="640">
-     <br><sub>Journeys the user chooses to start, with their current status and progress.</sub>
-   </p>
-
 4. **Practice.** A 14–30 day Journey serves one small challenge at a time. Rate it, describe how it felt, or skip it and say why. The next challenge is written in response.
-
-   <p align="center">
-     <img src="docs/screenshots/journeyDetailPage.png" alt="Socia Journey detail showing a daily challenge, feedback controls and challenge history" width="600">
-     <br><sub>One challenge at a time, with feedback and history.</sub>
-   </p>
 
 ## Architecture at a glance
 
