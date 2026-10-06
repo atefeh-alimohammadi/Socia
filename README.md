@@ -1,4 +1,4 @@
-# <img src="docs/screenshots/SociaCharacter.png" width="42" valign="middle"> Socia
+# <img src="docs/screenshots/SociaCharacter.png" width="54" valign="middle"> Socia
 
 **A local-LLM companion that remembers, notices recurring communication patterns, and turns the ones you choose into adaptive multi-day Journeys.**
 
