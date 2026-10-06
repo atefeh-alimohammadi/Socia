@@ -2,6 +2,11 @@
 
 **A local-LLM companion that remembers, notices recurring communication patterns, and turns the ones you choose into adaptive multi-day Journeys.**
 
+<p align="center">
+  <img src="docs/screenshots/homePage.png" alt="Socia dashboard showing active Journey, recent conversations, progress and profile" width="760">
+  <br><sub>Working prototype (v0.1) running locally with a demo account.</sub>
+</p>
+
 ## Why Socia?
 
 Social interaction is a part of everyday life, but it is not equally easy for everyone. Some people struggle with social anxiety, low confidence, overthinking, fear of judgment, difficulty expressing themselves, conflict avoidance, or simply not knowing how to handle certain social situations. These difficulties can show up repeatedly in everyday conversations, relationships, presentations, work, or other social situations.
@@ -72,9 +77,32 @@ flowchart LR
 ```
 
 1. **Talk.** Chat with a companion personalized by what it has learned about you. Its tone softens or sharpens based on your feedback.
+
+   <p align="center">
+     <img src="docs/screenshots/chatPage.png" alt="Socia chat showing a conversation with the companion and per-message feedback controls" width="640">
+     <br><sub>Chat with per-reply feedback.</sub>
+   </p>
+
 2. **It notices.** Each message is analyzed in the background for emotions, behavior tags and entities. A behavior observed at least three times can be promoted to a pattern, linked to the moments that support it.
+
+   <p align="center">
+     <img src="docs/screenshots/progressPage2.png" alt="Socia progress page showing recent mood and detected behavioral patterns" width="640">
+     <br><sub>Extracted mood signals and candidate patterns from conversation history.</sub>
+   </p>
+
 3. **You decide.** Patterns are offered, never imposed. Start a Journey from one, or don't.
+
+   <p align="center">
+     <img src="docs/screenshots/journeysPage2.png" alt="Socia Journeys page showing active, paused and completed Journeys" width="640">
+     <br><sub>Journeys the user chooses to start, with their current status and progress.</sub>
+   </p>
+
 4. **Practice.** A 14–30 day Journey serves one small challenge at a time. Rate it, describe how it felt, or skip it and say why. The next challenge is written in response.
+
+   <p align="center">
+     <img src="docs/screenshots/journeyDetailPage.png" alt="Socia Journey detail showing a daily challenge, feedback controls and challenge history" width="600">
+     <br><sub>One challenge at a time, with feedback and history.</sub>
+   </p>
 
 ## Architecture at a glance
 
@@ -98,7 +126,6 @@ Each chat turn: **safety check → routing → memory retrieval → reply → co
 * **Adaptation inside the loop, not a fixed plan.** Challenges are generated one at a time from the previous outcome, using bounded feedback (difficulty, skip reason) plus free text. *Trade-off: it only looks one step back.*
 * **Local inference.** LLM and embedding inference run locally through Ollama rather than through a hosted model API. *Trade-off: a 7B model is less reliable at structured output, which is why the validation above exists.*
 
-
 ## Pattern detection roadmap
 
 The current Production prototype uses **LLM-based signal extraction followed by deterministic application logic** to identify repeated behavioral signals. This is an intentionally simple baseline rather than the final behavioral detection system.
@@ -108,6 +135,7 @@ The separate `ml/` research module is being developed as the next-stage behavior
 Once the research model is sufficiently validated, the intended architecture is to replace or augment the current deterministic pattern-promotion step with the ML behavioral detector, while keeping the surrounding Production components—memory, evidence tracking, Journeys, safety, and user control—separate from the detector itself.
 
 **Current:** LLM signal extraction → deterministic recurrence rule
+
 **Planned:** LLM signal extraction → ML behavioral pattern detector → pattern/evidence layer → user-controlled Journeys
 
 ## Current limitations
@@ -142,5 +170,3 @@ Complete setup, environment variables and a demo script: [`docs/development.md`]
 ## Go deeper
 
 [Architecture](docs/architecture.md) · [Memory & patterns](docs/memory-and-patterns.md) · [Journeys](docs/journeys.md) · [Safety](docs/SAFETY.md) · [Concepts](docs/concepts.md) · [Status](docs/status.md) · [ML(Research)](ml/README.md)
-
-
