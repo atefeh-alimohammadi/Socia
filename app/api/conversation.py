@@ -8,6 +8,10 @@ from app.schemas.conversation import (
     MessageResponse,
 )
 
+from app.services.conversation_title_service import (
+    generate_conversation_title,
+)
+
 from app.models.user import User
 from app.models.conversation_session import ConversationSession
 from app.models.message import Message
@@ -238,15 +242,40 @@ Do not mention this reflection process to the user.
             "Reflection outcome: pass"
         )
 
+
     assistant_message = Message(
         session_id=conversation.id,
         role="assistant",
-        content=ai_response
+        content=ai_response,
     )
 
     db.add(assistant_message)
     db.commit()
     db.refresh(assistant_message)
+
+    if conversation.title is None:
+        user_message_count = (
+            db.query(Message)
+            .filter(
+                Message.session_id == conversation.id,
+                Message.role == "user",
+            )
+            .count()
+        )
+
+        if user_message_count == 1:
+            generated_title = generate_conversation_title(
+                user_message=user_message.content,
+                assistant_response=assistant_message.content,
+            )
+
+            if generated_title:
+                conversation.title = generated_title
+
+                db.add(conversation)
+                db.commit()
+                db.refresh(conversation)
+
 
     background_tasks.add_task(
         analyze_conversation_message,

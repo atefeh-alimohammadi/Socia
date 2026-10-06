@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 PATTERN_GENERATION_PROMPT = """
-You are generating a memory summary for a user.
+You are generating a short memory summary that Socia will show directly
+to the user.
 
 Memory category:
 {event_type}
@@ -25,18 +26,31 @@ Memory category:
 Tag:
 {tag}
 
-Evidence from conversations:
+Evidence from the user's conversations:
 
 {evidence}
 
-Write a single sentence describing this recurring pattern.
+Write ONE short, natural sentence describing the recurring communication
+pattern reflected by the evidence.
 
-Write in third person.
-
-Be specific, supportive, and avoid clinical or diagnostic language.
-Describe observations, not personality flaws.
-
-Return only the sentence.
+Writing requirements:
+- Write directly to the user in second person.
+- Use "you" / "your", never "the user" or "this user".
+- Be supportive and neutral.
+- Describe a repeated communication tendency, not a personality trait.
+- Do not diagnose, label, pathologize, or imply a clinical condition.
+- Do not use words such as "deep-seated", "disorder", "pathological",
+  "abnormal", or similar clinical/strong language.
+- Do not exaggerate the evidence.
+- Do not claim the pattern happens all the time.
+- Prefer natural wording such as "You often...", "You sometimes...",
+  or "You tend to..." when supported by the evidence.
+- Keep the sentence concise: ideally 8–18 words.
+- Base the sentence on the evidence rather than merely translating the tag.
+- Do not mention the existence of these memories, observations, tags,
+  evidence, models, or conversations.
+- Do not mention confidence or frequency counts.
+- Return ONLY the sentence, with no quotation marks and no explanation.
 """
 
 
@@ -75,12 +89,10 @@ def _link_new_evidence(
         )
     }
 
-
     for episodic_id in episodic_ids:
 
         if episodic_id in already_linked:
             continue
-
 
         db.add(
             UserMemoryEvidence(
@@ -94,12 +106,9 @@ def synthesize_patterns_from_observations(
     user_id: int,
 ) -> None:
 
-
     db = SessionLocal()
 
-
     try:
-
 
         tag_counts = (
             db.query(
@@ -128,26 +137,21 @@ def synthesize_patterns_from_observations(
             .all()
         )
 
-
         for event_type, tag, count, avg_confidence in tag_counts:
-
 
             if count < 3:
                 continue
-
 
             new_confidence = round(
                 avg_confidence,
                 2
             )
 
-
             memory_type = (
                 "emotion_pattern"
                 if event_type == "emotion"
                 else "pattern"
             )
-
 
             evidence_rows = (
                 db.query(EpisodicMemory)
@@ -163,12 +167,10 @@ def synthesize_patterns_from_observations(
                 .all()
             )
 
-
             evidence_ids = [
                 row.id
                 for row in evidence_rows
             ]
-
 
             existing = (
                 db.query(UserMemory)
@@ -181,9 +183,7 @@ def synthesize_patterns_from_observations(
                 .first()
             )
 
-
             if existing:
-
 
                 unchanged = (
                     existing.evidence_count == count
@@ -192,7 +192,6 @@ def synthesize_patterns_from_observations(
                         existing.confidence - new_confidence
                     ) < CONFIDENCE_CHANGE_THRESHOLD
                 )
-
 
                 if unchanged:
 
@@ -204,18 +203,14 @@ def synthesize_patterns_from_observations(
 
                     continue
 
-
-
                 _snapshot_current_state(
                     db,
                     existing
                 )
 
-
                 existing.evidence_count = count
                 existing.confidence = new_confidence
                 existing.version += 1
-
 
                 _link_new_evidence(
                     db,
@@ -223,10 +218,7 @@ def synthesize_patterns_from_observations(
                     evidence_ids
                 )
 
-
                 continue
-
-
 
             evidence_text = "\n".join(
                 [
@@ -235,13 +227,11 @@ def synthesize_patterns_from_observations(
                 ]
             )
 
-
             prompt = PATTERN_GENERATION_PROMPT.format(
                 event_type=event_type,
                 tag=tag,
                 evidence=evidence_text
             )
-
 
             response = chat(
                 model="qwen2.5:7b",
@@ -253,11 +243,14 @@ def synthesize_patterns_from_observations(
                 ]
             )
 
-
             generated_description = (
                 response.message.content.strip()
             )
 
+            if not generated_description:
+                raise ValueError(
+                    "Pattern generator returned empty content"
+                )
 
             memory = UserMemory(
                 user_id=user_id,
@@ -271,11 +264,9 @@ def synthesize_patterns_from_observations(
                 version=1,
             )
 
-
             db.add(memory)
 
             db.flush()
-
 
             _link_new_evidence(
                 db,
@@ -283,10 +274,7 @@ def synthesize_patterns_from_observations(
                 evidence_ids
             )
 
-
         db.commit()
-
-
 
     except Exception as e:
 
@@ -298,8 +286,7 @@ def synthesize_patterns_from_observations(
 
         db.rollback()
 
-
-
     finally:
 
         db.close()
+
