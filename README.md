@@ -146,12 +146,17 @@ Complete setup, environment variables and a demo script: [`docs/development.md`]
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/chatPage.png" alt="Socia chat" width="48%">
-  <img src="docs/screenshots/progressPage2.png" alt="Socia progress and patterns" width="48%">
+  <img src="docs/screenshots/homePage.png" alt="Socia home page" width="32%">
+  <img src="docs/screenshots/chatPage.png" alt="Socia chat page" width="32%">
+  <img src="docs/screenshots/progressPage.png" alt="Socia progress page" width="32%">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/journeysPage2.png" alt="Socia Journeys" width="48%">
-  <img src="docs/screenshots/journeyDetailPage.png" alt="Socia Journey detail" width="48%">
+  <img src="docs/screenshots/progressPage2.png" alt="Socia progress and patterns" width="32%">
+  <img src="docs/screenshots/journeysPage2.png" alt="Socia Journeys page" width="32%">
+  <img src="docs/screenshots/journeyDetailPage.png" alt="Socia Journey detail" width="32%">
 </p>
 
+## License
+
+License information will be added before public release.
