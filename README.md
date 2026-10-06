@@ -145,8 +145,6 @@ Complete setup, environment variables and a demo script: [`docs/development.md`]
 
 ## Screenshots
 
-## Screenshots
-
 <div align="center">
   <img src="docs/screenshots/homePage.png" alt="Socia home page" width="32%">
   <img src="docs/screenshots/chatPage.png" alt="Socia chat page" width="32%">
