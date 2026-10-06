@@ -157,6 +157,3 @@ Complete setup, environment variables and a demo script: [`docs/development.md`]
   <img src="docs/screenshots/journeyDetailPage.png" alt="Socia Journey detail" width="32%">
 </p>
 
-## License
-
-License information will be added before public release.
