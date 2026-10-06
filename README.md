@@ -141,4 +141,17 @@ Complete setup, environment variables and a demo script: [`docs/development.md`]
 
 ## Go deeper
 
-[Architecture](docs/architecture.md) · [Memory & patterns](docs/memory-and-patterns.md) · [Journeys](docs/journeys.md) · [Safety](docs/SAFETY.md) · [Concepts](docs/concepts.md) · [Status](docs/status.md) · [ML(Research)](ml/README.md)
+[Architecture](docs/architecture.md) · [Memory & patterns](docs/memory-and-patterns.md) · [Journeys](docs/journeys.md) · [Safety](docs/SAFETY.md) · [Concepts](docs/concepts.md) · [Status](docs/status.md) · [ML (Research)](ml/README.md)
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/chatPage.png" alt="Socia chat" width="48%">
+  <img src="docs/screenshots/progressPage2.png" alt="Socia progress and patterns" width="48%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/journeysPage2.png" alt="Socia Journeys" width="48%">
+  <img src="docs/screenshots/journeyDetailPage.png" alt="Socia Journey detail" width="48%">
+</p>
+
