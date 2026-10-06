@@ -1,4 +1,4 @@
-# Socia
+# <img src="docs/screenshots/SociaCharacter.png" width="42" valign="middle"> Socia
 
 **A local-LLM companion that remembers, notices recurring communication patterns, and turns the ones you choose into adaptive multi-day Journeys.**
 
@@ -157,4 +157,6 @@ Complete setup, environment variables and a demo script: [`docs/development.md`]
   <img src="docs/screenshots/progressPage2.png" alt="Socia progress and patterns" width="32%">
 </div>
 
+## License
 
+License information will be added before public release.
